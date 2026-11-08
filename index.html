@@ -1,0 +1,1219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Supers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: website tool on pure white. Top bar; big static preview + export bar on the left; editing panel on the right. Stacks under 900px. */
+:root {
+  --onyx: #022B1A; --mal: #016E41; --em: #00E385; --sea: #AFF6D9; --ice: #FAFEFD;
+  --bg: #FFFFFF;
+  --ink: var(--onyx);
+  --muted: rgb(2 43 26 / .5);
+  --line: rgb(2 43 26 / .1);
+  --tile: rgb(2 43 26 / .035);
+  --display: "Fredoka", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+  --ui: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+html, body { min-height: 100%; background: var(--bg); }
+body { color: var(--ink); font-family: var(--ui); }
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2.5px solid var(--em); outline-offset: 2px; }
+
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header.bar { border-bottom: 1px solid var(--line); }
+header.bar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand svg { width: 34px; height: 34px; flex: none; }
+.brand h1 { font-family: var(--display); font-weight: 600; font-size: 1.35rem; margin: 0; white-space: nowrap; }
+.brand span { color: var(--muted); font-size: .9rem; white-space: nowrap; }
+@media (max-width: 600px) { .brand span { display: none; } .actions .btn span { display: none; } }
+.actions { display: flex; gap: 8px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 42px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--bg); font-weight: 600; font-size: .95rem; white-space: nowrap;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.btn:hover { background: var(--tile); border-color: rgb(2 43 26 / .18); }
+.btn:active { transform: scale(.97); }
+.btn svg { width: 18px; height: 18px; flex: none; }
+.btn.primary { background: var(--onyx); color: var(--ice); border-color: var(--onyx); }
+.btn.primary:hover { background: var(--mal); border-color: var(--mal); }
+.btn.small { height: 34px; padding: 0 12px; font-size: .85rem; border-radius: 10px; }
+
+main.wrap {
+  display: grid; gap: 28px; padding-block: 28px 48px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px); align-items: start;
+}
+@media (max-width: 900px) { main.wrap { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-block: 16px 40px; } }
+
+/* Preview */
+.preview { display: grid; gap: 14px; min-width: 0; position: sticky; top: 16px; }
+@media (max-width: 900px) { .preview { position: static; } }
+.stage {
+  position: relative; border: 1px solid var(--line); border-radius: 28px;
+  aspect-ratio: 1 / .9; max-height: 620px; width: 100%;
+  display: grid; place-items: center; overflow: hidden; background: var(--bg);
+}
+.stage.checker {
+  background-image: conic-gradient(var(--tile) 25%, transparent 0 50%, var(--tile) 0 75%, transparent 0);
+  background-size: 22px 22px;
+}
+.buddy { width: min(80%, 460px); aspect-ratio: 1; margin-top: -4%; }
+.buddy svg { width: 100%; height: 100%; display: block; }
+.chip {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  font-family: var(--display); font-weight: 500; font-size: 1rem;
+  padding: 6px 16px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); white-space: nowrap;
+}
+
+.export { display: grid; gap: 10px; border: 1px solid var(--line); border-radius: 20px; padding: 12px; }
+.export-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.export .grow { flex: 1 1 auto; }
+.export .hint { margin: 0; font-size: .85rem; color: var(--muted); line-height: 1.4; }
+.opt { display: inline-flex; align-items: center; gap: 8px; font-size: .9rem; font-weight: 500; color: var(--muted); }
+.opt select {
+  height: 42px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg);
+  padding: 0 10px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.toggle { display: inline-flex; align-items: center; gap: 8px; font-size: .9rem; font-weight: 500; cursor: pointer; user-select: none; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--onyx); margin: 0; }
+
+/* Panel */
+.panel { border: 1px solid var(--line); border-radius: 28px; overflow: hidden; min-width: 0; }
+.tabs { display: flex; gap: 2px; padding: 10px 10px 0; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); }
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  border: 0; background: none; padding: 10px 12px 12px; font-size: 1rem; font-weight: 500;
+  color: var(--muted); white-space: nowrap; border-bottom: 2.5px solid transparent; margin-bottom: -1px;
+}
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); font-weight: 700; border-bottom-color: var(--onyx); }
+
+.swatchbar { border-bottom: 1px solid var(--line); min-height: 92px; display: grid; align-content: center; gap: 8px; padding: 14px 22px 12px; }
+.swatches { display: flex; justify-content: space-between; align-items: center; }
+.sw { width: 48px; height: 48px; border-radius: 50%; border: 0; padding: 0; box-shadow: inset 0 0 0 1px var(--line); transition: transform .15s; }
+.sw:hover { transform: scale(1.06); }
+.sw[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--line), 0 0 0 4px var(--bg), 0 0 0 6.5px var(--onyx); }
+.swname { font-size: .8rem; color: var(--muted); letter-spacing: .04em; font-variant-numeric: tabular-nums; text-align: center; }
+.note { margin: 0; font-size: .92rem; line-height: 1.45; color: var(--muted); text-align: center; }
+
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 16px 18px; }
+.tile {
+  border: 0; background: transparent; border-radius: 22px; padding: 6px;
+  display: grid; justify-items: center; gap: 2px;
+  box-shadow: inset 0 0 0 2px transparent; transition: background .15s, box-shadow .15s;
+}
+.tile svg { width: 100%; max-width: 96px; aspect-ratio: 1; height: auto; display: block; }
+.tile:hover { background: var(--tile); }
+.tile[aria-pressed="true"] { background: var(--tile); box-shadow: inset 0 0 0 2px var(--line); }
+.tile .lbl { font-size: .8rem; font-weight: 600; color: var(--muted); padding-bottom: 4px; }
+.tile[aria-pressed="true"] .lbl { color: var(--ink); }
+.none-mark { fill: none; stroke: var(--muted); stroke-width: 3; stroke-linecap: round; }
+
+/* Noise controls */
+.texture { border-top: 1px solid var(--line); padding: 16px 22px 20px; display: grid; gap: 14px; }
+.texture-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.texture-head h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+.ctl { display: grid; grid-template-columns: 84px minmax(0, 1fr) 64px; align-items: center; gap: 12px; }
+.ctl label { font-size: .9rem; font-weight: 600; }
+.ctl input[type=range] { width: 100%; accent-color: var(--onyx); margin: 0; }
+.ctl output { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .85rem; text-align: right; }
+.note.left { text-align: left; font-size: .85rem; }
+.combo { position: relative; }
+.combo-ico { position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.combo input {
+  width: 100%; box-sizing: border-box; height: 46px; border-radius: 14px; border: 1px solid var(--line);
+  background: var(--bg); padding: 0 44px 0 42px; font-size: .95rem; font-weight: 500;
+}
+.combo input::placeholder { color: var(--muted); font-weight: 400; }
+.combo input:focus { border-color: var(--onyx); outline: none; box-shadow: 0 0 0 3px rgb(0 227 133 / .35); }
+.combo-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border: 0; background: none; border-radius: 10px; display: grid; place-items: center; color: var(--muted); }
+.combo-toggle svg { width: 18px; height: 18px; }
+.combo-toggle:hover { background: var(--tile); color: var(--ink); }
+.combo-list {
+  position: absolute; z-index: 6; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 16px; max-height: 300px; overflow-y: auto;
+  box-shadow: 0 18px 40px -12px rgb(2 43 26 / .28);
+}
+.combo-list li { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; padding: 6px 10px 6px 6px; border-radius: 11px; cursor: pointer; font-weight: 600; font-size: .92rem; }
+.combo-list li svg { width: 34px; height: 34px; display: block; }
+.combo-list li.active { background: var(--tile); }
+.combo-list li[aria-selected="true"] span { color: var(--mal); }
+.combo-list li em { font-style: normal; font-size: .72rem; font-weight: 700; color: var(--mal); background: rgb(0 227 133 / .16); padding: 3px 8px; border-radius: 99px; }
+.combo-list li.empty { display: block; cursor: default; color: var(--muted); font-weight: 500; padding: 12px; }
+.grid.cols4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.grid-empty { grid-column: 1 / -1; padding: 24px 0; }
+.bgrow { gap: 12px; }
+.bgsw { display: flex; gap: 6px; flex-wrap: wrap; }
+.bgsw button { width: 30px; height: 30px; border-radius: 50%; border: 0; padding: 0; box-shadow: inset 0 0 0 1px var(--line); }
+.bgsw button[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--line), 0 0 0 3px var(--bg), 0 0 0 5px var(--onyx); }
+.bgsw .none { background-color: var(--bg); background-image: conic-gradient(var(--line) 25%, transparent 0 50%, var(--line) 0 75%, transparent 0); background-size: 10px 10px; }
+.seg.mini button { height: 32px; font-size: .8rem; padding: 0 10px; flex: 0 0 auto; }
+.looks { padding: 16px 18px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+.looks-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.looks-head h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+.looks-head span { font-size: .8rem; color: var(--muted); }
+.looks-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 420px) { .looks-row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.look { border: 0; padding: 0; background: none; border-radius: 16px; display: grid; gap: 4px; justify-items: center; }
+.look svg { width: 100%; aspect-ratio: 1; display: block; border-radius: 50%; transition: transform .15s; }
+.look:hover svg { transform: translateY(-2px) scale(1.04); }
+.look span { font-size: .72rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.look:hover span { color: var(--ink); }
+.stage.dark { background: var(--onyx); border-color: var(--onyx); }
+.stage.dark .chip { background: var(--onyx); color: var(--ice); border-color: rgb(250 254 253 / .15); }
+.stylebar { padding: 16px 18px; display: grid; gap: 14px; border-bottom: 1px solid var(--line); background: var(--tile); }
+.plush-box { display: grid; gap: 12px; }
+.btn.icon { width: 42px; padding: 0; }
+.btn[disabled] { opacity: .35; cursor: not-allowed; }
+.btn[aria-busy="true"] { opacity: .75; cursor: progress; }
+.spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg button {
+  flex: 1 1 auto; height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg); font-weight: 600; font-size: .88rem; white-space: nowrap;
+}
+.seg button:hover:not([disabled]) { background: var(--tile); }
+.seg button[aria-pressed="true"] { background: var(--onyx); color: var(--ice); border-color: var(--onyx); }
+.seg button[disabled] { opacity: .4; cursor: not-allowed; }
+.stage:focus-visible { outline: 2.5px solid var(--em); outline-offset: 3px; }
+#main [data-drag] { cursor: grab; touch-action: none; }
+#main [data-drag]:hover { filter: drop-shadow(0 0 1px rgb(0 227 133 / .9)); }
+.stage:hover #main .selected, .stage.dragging #main .selected, .stage:focus-visible #main .selected { filter: drop-shadow(0 0 1.1px #00E385) drop-shadow(0 0 1.1px #00E385); }
+.stage.dragging, .stage.dragging #main [data-drag] { cursor: grabbing; }
+.texture-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  background: var(--onyx); color: var(--ice); padding: 10px 18px; border-radius: 99px;
+  font-weight: 600; font-size: .92rem; transition: opacity .2s, transform .2s; z-index: 20;
+  max-width: calc(100% - 32px); text-align: center;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<svg id="probe" width="200" height="200" style="position:absolute;visibility:hidden;pointer-events:none;left:-9999px" aria-hidden="true"></svg>
+
+<header class="bar">
+  <div class="wrap">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="21" r="16" fill="#00E385"/><ellipse cx="14.5" cy="19" rx="2" ry="3" fill="#022B1A"/><ellipse cx="25.5" cy="19" rx="2" ry="3" fill="#022B1A"/><path d="M16.5 25 Q20 28.5 23.5 25" stroke="#022B1A" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <h1>Supers</h1>
+      <span>3D avatars in five greens, ready for Figma</span>
+    </div>
+    <div class="actions">
+      <button class="btn icon" id="undo" title="Undo (⌘Z / Ctrl+Z)" aria-label="Undo" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+      </button>
+      <button class="btn icon" id="redo" title="Redo (⇧⌘Z / Ctrl+Shift+Z)" aria-label="Redo" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>
+      </button>
+      <button class="btn" id="shuffle" title="Shuffle everything" aria-label="Shuffle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/></svg>
+        <span>Shuffle</span>
+      </button>
+      <button class="btn" id="save" title="Remember this buddy in this browser" aria-label="Save">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        <span>Save</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="preview" aria-label="Preview and export">
+    <div class="stage" id="stage" tabindex="0" aria-label="Preview. Drag parts to move them; arrow keys nudge the selected part.">
+      <div class="buddy"><svg id="main" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="-25 -40 250 250" role="img" aria-label="Your buddy"></svg></div>
+      <div class="chip" id="chip">Feeling happy</div>
+    </div>
+    <div class="export">
+      <div class="export-row">
+        <button class="btn primary" id="copy-svg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copy SVG</button>
+        <button class="btn" id="copy-png">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copy PNG</button>
+        <button class="btn" id="dl-svg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>SVG</button>
+        <button class="btn" id="dl-png">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>PNG</button>
+      </div>
+      <div class="export-row">
+        <label class="opt" for="size">Size
+          <select id="size">
+            <option value="512">512 px</option>
+            <option value="1024" selected>1024 px</option>
+            <option value="2048">2048 px</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint" id="export-hint">Copy SVG, then paste into Figma with ⌘V / Ctrl+V.</p>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Customise">
+    <div class="stylebar">
+      <div class="seg" id="style-seg" role="group" aria-label="Look">
+        <button data-style="soft" id="style-soft">Soft 3D</button>
+        <button data-style="flat" id="style-flat">Flat</button>
+      </div>
+      <div id="soft-box" class="plush-box">
+        <div class="ctl"><label for="p-depth">Depth</label><input type="range" id="p-depth" min="0" max="100" value="60"><output id="o-depth" for="p-depth">60%</output></div>
+        <div class="ctl"><label for="p-shine">Shine</label><input type="range" id="p-shine" min="0" max="100" value="45"><output id="o-shine" for="p-shine">45%</output></div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" id="tabs"></nav>
+    <div class="swatchbar" id="swatchbar"></div>
+    <div class="grid" id="grid"></div>
+    <div class="texture">
+      <div class="texture-head">
+        <h2>Position</h2>
+        <button class="btn small" id="l-reset" title="Put the selected part back in its default spot">Reset</button>
+      </div>
+      <div class="seg" id="seg" role="group" aria-label="Part to move"></div>
+      <div class="ctl"><label for="l-size">Size</label><input type="range" id="l-size" min="40" max="180" value="100"><output id="o-size" for="l-size">100%</output></div>
+      <div class="ctl"><label for="l-rot">Rotate</label><input type="range" id="l-rot" min="-60" max="60" value="0"><output id="o-rot" for="l-rot">0°</output></div>
+      <p class="note left">Drag the face, glasses or hat in the preview. Arrow keys nudge the selected part; hold Shift for bigger steps.</p>
+    </div>
+    <div class="texture">
+      <div class="texture-head">
+        <h2>Noise</h2>
+        <button class="btn small" id="reseed" title="Generate a new grain pattern">New pattern</button>
+      </div>
+      <div class="ctl"><label for="n-amount">Amount</label><input type="range" id="n-amount" min="0" max="100" value="35"><output id="o-amount" for="n-amount">35%</output></div>
+      <div class="ctl"><label for="n-grain">Grain size</label><input type="range" id="n-grain" min="1" max="6" value="2"><output id="o-grain" for="n-grain">2</output></div>
+      <div class="ctl"><label for="n-density">Density</label><input type="range" id="n-density" min="10" max="100" value="70"><output id="o-density" for="n-density">70%</output></div>
+      <div class="ctl"><label for="n-tone">Tone</label><input type="range" id="n-tone" min="0" max="100" value="50"><output id="o-tone" for="n-tone">Mixed</output></div>
+      <div class="texture-foot">
+        <label class="toggle" for="n-extras"><input type="checkbox" id="n-extras" checked> Noise on hats and extras</label>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const P = { onyx: '#022B1A', mal: '#016E41', em: '#00E385', sea: '#AFF6D9', ice: '#FAFEFD' };
+const RGB = { onyx: [2, 43, 26], ice: [250, 254, 253] };
+const COLORS = [
+  { id: 'onyx', name: 'Onyx' }, { id: 'mal', name: 'Malachite' }, { id: 'em', name: 'Emerald' },
+  { id: 'sea', name: 'Sea Glass' }, { id: 'ice', name: 'Ice Jade' }
+];
+const SECOND = { onyx: 'em', mal: 'sea', em: 'onyx', sea: 'mal', ice: 'em' };
+const CHEEK = { onyx: 'mal', mal: 'em', em: 'sea', sea: 'em', ice: 'sea' };
+const f = n => +n.toFixed(2);
+
+function polar(n, base, amp) {
+  let d = '';
+  for (let i = 0; i <= 180; i++) {
+    const t = i / 180 * Math.PI * 2;
+    const r = base + amp * Math.cos(n * (t + Math.PI / 2));
+    d += (i ? 'L' : 'M') + f(100 + r * Math.cos(t)) + ' ' + f(105 + r * Math.sin(t));
+  }
+  return `<path d="${d}Z"/>`;
+}
+/* cloud: round lobes meeting in soft creases, slightly wider than tall */
+function cloudPath() {
+  let d = '';
+  for (let i = 0; i <= 240; i++) {
+    const t = i / 240 * Math.PI * 2;
+    const lobe = Math.pow(Math.abs(Math.cos(3.5 * (t + Math.PI / 2))), .5);
+    const r = 55 + 11 * lobe + 2.5 * Math.sin(t * 2 + .6);
+    d += (i ? 'L' : 'M') + f(100 + r * 1.06 * Math.cos(t)) + ' ' + f(106 + r * .96 * Math.sin(t));
+  }
+  return `<path d="${d}Z"/>`;
+}
+function roundedPoly(pts, r) {
+  const n = pts.length, A = [], B = [];
+  pts.forEach((p, i) => {
+    const pr = pts[(i - 1 + n) % n], nx = pts[(i + 1) % n];
+    const u = (q) => { const dx = q[0] - p[0], dy = q[1] - p[1], l = Math.hypot(dx, dy); return [p[0] + dx / l * r, p[1] + dy / l * r]; };
+    A.push(u(pr)); B.push(u(nx));
+  });
+  let d = `M${f(B[0][0])} ${f(B[0][1])}`;
+  for (let i = 1; i <= n; i++) { const j = i % n; d += `L${f(A[j][0])} ${f(A[j][1])}Q${pts[j][0]} ${pts[j][1]} ${f(B[j][0])} ${f(B[j][1])}`; }
+  return `<path d="${d}Z"/>`;
+}
+
+/* All shapes are fill-only geometry so they work as clip paths and import cleanly into Figma. */
+const SHAPES = [
+  { id: 'cloud', name: 'Cloud', face: .47, svg: cloudPath() },
+  { id: 'circle', name: 'Circle', face: .44, svg: '<circle cx="100" cy="105" r="66"/>' },
+  { id: 'triangle', name: 'Triangle', face: .64, svg: roundedPoly([[100, 30], [180, 166], [20, 166]], 24) },
+  { id: 'pill', name: 'Pill', face: .44, svg: '<rect x="26" y="66" width="148" height="80" rx="40"/>' },
+  { id: 'sprout', name: 'Sprout', face: .6, svg: '<circle cx="100" cy="118" r="58"/><ellipse cx="91" cy="56" rx="10" ry="16" transform="rotate(-18 91 56)"/><ellipse cx="108" cy="55" rx="9" ry="13" transform="rotate(22 108 55)"/>' },
+  { id: 'flower', name: 'Flower', face: .45, svg: polar(6, 60, 10) },
+  { id: 'heart', name: 'Heart', face: .38, svg: '<path d="M100 172 C38 130 20 98 35 70 C50 42 87 45 100 70 C113 45 150 42 165 70 C180 98 162 130 100 172Z"/>' },
+  { id: 'square', name: 'Square', face: .45, svg: '<rect x="38" y="44" width="124" height="124" rx="36"/>' },
+  { id: 'star', name: 'Star', face: .5, svg: polar(5, 56, 15) }
+];
+const EYES = [
+  { id: 'ovals', name: 'Ovals' }, { id: 'round', name: 'Round' }, { id: 'shiny', name: 'Shiny' },
+  { id: 'tiny', name: 'Tiny' }, { id: 'wide', name: 'Wide' }, { id: 'ring', name: 'Button' }
+];
+const MOODS = [
+  { id: 'plain', name: 'Plain', k: 'neutral blank simple default quiet' },
+  { id: 'happy', name: 'Happy', k: 'joy smile glad cheerful laugh' },
+  { id: 'excited', name: 'Excited', k: 'thrilled yay hyped joy laugh big smile' },
+  { id: 'calm', name: 'Calm', k: 'relaxed content peaceful chill' },
+  { id: 'wink', name: 'Wink', k: 'flirty playful wink cheeky' },
+  { id: 'cheeky', name: 'Cheeky', k: 'tongue playful silly cheeky' },
+  { id: 'silly', name: 'Silly', k: 'goofy crazy funny tongue derp' },
+  { id: 'love', name: 'In love', k: 'heart crush romantic adore' },
+  { id: 'shy', name: 'Shy', k: 'blush bashful embarrassed nervous' },
+  { id: 'smug', name: 'Smug', k: 'confident proud smirk cool' },
+  { id: 'dreamy', name: 'Dreamy', k: 'daydream wonder hopeful' },
+  { id: 'sleepy', name: 'Sleepy', k: 'tired sleep bored yawn' },
+  { id: 'surprised', name: 'Surprised', k: 'shock wow amazed omg' },
+  { id: 'worried', name: 'Worried', k: 'anxious nervous scared uneasy' },
+  { id: 'sad', name: 'Sad', k: 'unhappy down blue cry' },
+  { id: 'grumpy', name: 'Grumpy', k: 'angry mad annoyed cross' }
+];
+const GLASSES = [
+  { id: 'none', name: 'None' }, { id: 'round', name: 'Round' }, { id: 'square', name: 'Square' },
+  { id: 'shades', name: 'Shades' }, { id: 'cat', name: 'Cat-eye' }, { id: 'hearts', name: 'Hearts' }
+];
+const EXTRAS = [
+  { id: 'none', name: 'None' }, { id: 'beret', name: 'Beret' }, { id: 'cap', name: 'Cap' },
+  { id: 'crown', name: 'Crown' }, { id: 'bow', name: 'Bow' }, { id: 'party', name: 'Party hat' },
+  { id: 'sprout', name: 'Sprout' }, { id: 'bowtie', name: 'Bow tie' }, { id: 'phones', name: 'Headphones' }
+];
+const TABS = [
+  { id: 'shape', name: 'Shape', colorKey: 'color', label: 'Body' },
+  { id: 'eyes', name: 'Eyes', colorKey: 'eyeColor', label: 'Face' },
+  { id: 'mood', name: 'Mood', colorKey: null },
+  { id: 'glasses', name: 'Glasses', colorKey: 'glassesColor', label: 'Frames' },
+  { id: 'extras', name: 'Extras', colorKey: 'extraColor', label: 'Extra' }
+];
+const DEFAULT = {
+  color: 'em', eyeColor: 'onyx', glassesColor: 'onyx', extraColor: 'onyx',
+  shape: 'cloud', eyes: 'ovals', mood: 'plain', glasses: 'none', extra: 'beret',
+  nAmount: 0, nGrain: 2, nDensity: 70, nTone: 65, nExtras: true, nSeed: 7,
+  style: 'soft', pFuzz: 3, pPuff: 55, pFur: 45, pDepth: 60, pShine: 45, pGlow: 60
+};
+const LAYERS = [{ id: 'face', name: 'Face' }, { id: 'glasses', name: 'Glasses' }, { id: 'extra', name: 'Hat / extra' }];
+const freshOff = () => ({ x: 0, y: 0, s: 1, r: 0 });
+const freshOffs = () => ({ face: freshOff(), glasses: freshOff(), extra: freshOff() });
+let state = { ...DEFAULT, off: freshOffs() };
+let tab = 'shape';
+let selected = 'extra';
+function sanitize() {
+  const ok = (list, v) => list.some(x => x.id === v);
+  if (!ok(SHAPES, state.shape)) state.shape = DEFAULT.shape;
+  if (!ok(MOODS, state.mood)) state.mood = DEFAULT.mood;
+  if (!ok(EXTRAS, state.extra)) state.extra = 'none';
+  if (!ok(GLASSES, state.glasses)) state.glasses = 'none';
+  if (!['soft', 'flat'].includes(state.style)) state.style = DEFAULT.style;
+}
+try {
+  const saved = JSON.parse(localStorage.getItem('fuzzy-buddy') || 'null');
+  if (saved && typeof saved === 'object') {
+    state = { ...DEFAULT, ...saved, off: freshOffs() };
+    if (saved.off) LAYERS.forEach(l => Object.assign(state.off[l.id], saved.off[l.id] || {}));
+  }
+} catch (e) {}
+
+/* transform for a movable part; pivots so size and rotation happen around the part's own centre */
+let GEO = { cx: 100, fy: 100, top: 40 };
+function tf(layer, o, g) {
+  const t = o.off[layer];
+  if (layer === 'extra') return `translate(${f(g.cx + t.x)} ${f(g.top + 8 + t.y)}) rotate(${f(t.r)}) scale(${f(t.s)})`;
+  const px = f(g.cx), py = f(layer === 'face' ? g.fy + 6 : g.fy);
+  return `translate(${f(px + t.x)} ${f(py + t.y)}) rotate(${f(t.r)}) scale(${f(t.s)}) translate(${-px} ${-py})`;
+}
+
+const BOX = {};
+(function measure() {
+  const probe = document.getElementById('probe');
+  SHAPES.forEach(s => {
+    probe.innerHTML = `<g>${s.svg}</g>`;
+    let b;
+    try { b = probe.firstChild.getBBox(); } catch (e) { b = { x: 34, y: 39, width: 132, height: 132 }; }
+    BOX[s.id] = { x: b.x, y: b.y, w: b.width, h: b.height };
+  });
+  probe.remove();
+})();
+
+/* ---------- noise texture (baked PNG, so Figma and every viewer render it the same) ---------- */
+const NOISE_PX = 420;      // texture resolution
+const NOISE_UNITS = 180;   // size the texture covers, in drawing units
+let noiseURL = '';
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function buildNoise() {
+  if (state.nAmount <= 0) { noiseURL = ''; return; }
+  const cv = document.createElement('canvas'); cv.width = cv.height = NOISE_PX;
+  const ctx = cv.getContext('2d'), img = ctx.createImageData(NOISE_PX, NOISE_PX), d = img.data;
+  const rnd = mulberry(state.nSeed * 9973 + 1);
+  const cell = state.nGrain, maxA = state.nAmount / 100 * .75, density = state.nDensity / 100, light = state.nTone / 100;
+  // low-frequency field so the grain clumps a little, like felt, instead of looking like TV static
+  const G = 22, gw = Math.ceil(NOISE_PX / G) + 2, field = Array.from({ length: gw * gw }, () => rnd());
+  const smooth = t => t * t * (3 - 2 * t);
+  const clump = (x, y) => {
+    const gx = x / G, gy = y / G, ix = Math.floor(gx), iy = Math.floor(gy), tx = smooth(gx - ix), ty = smooth(gy - iy);
+    const v = (i, j) => field[(iy + j) * gw + ix + i];
+    return (v(0, 0) * (1 - tx) + v(1, 0) * tx) * (1 - ty) + (v(0, 1) * (1 - tx) + v(1, 1) * tx) * ty;
+  };
+  for (let y = 0; y < NOISE_PX; y += cell) {
+    for (let x = 0; x < NOISE_PX; x += cell) {
+      const local = Math.min(1, density * (.55 + .9 * clump(x, y)));
+      const on = rnd() < local, g = (rnd() + rnd() + rnd()) / 3, isLight = rnd() < light;
+      if (!on) continue;
+      const mag = Math.min(1, Math.abs(g - .5) * 2.6);
+      const a = Math.round(255 * maxA * (.3 + .7 * mag));
+      const c = isLight ? RGB.ice : RGB.onyx;
+      for (let yy = y; yy < Math.min(y + cell, NOISE_PX); yy++) {
+        for (let xx = x; xx < Math.min(x + cell, NOISE_PX); xx++) {
+          const i = (yy * NOISE_PX + xx) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = a;
+        }
+      }
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  noiseURL = cv.toDataURL('image/png');
+}
+function noiseImage(cx, cy, clipId, id) {
+  if (!noiseURL) return '';
+  const h = NOISE_UNITS / 2;
+  return `<image${id ? ` id="${id}"` : ''} x="${f(cx - h)}" y="${f(cy - h)}" width="${NOISE_UNITS}" height="${NOISE_UNITS}" preserveAspectRatio="none" clip-path="url(#${clipId})" xlink:href="${noiseURL}"/>`;
+}
+
+/* ---------- drawing ---------- */
+const stroke = (c, w = 3.2) => `stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" fill="none"`;
+const HEART = 'M0 7 C-9 1 -10 -5 -6 -8 C-3 -10 0 -8 0 -5 C0 -8 3 -10 6 -8 C10 -5 9 1 0 7Z';
+
+function eyeShape(x, y, style, c, rich = false, matte = false) {
+  if (matte) {
+    switch (style) {
+      case 'round': return `<circle cx="${x}" cy="${y}" r="7.5" fill="${c}"/>`;
+      case 'shiny': return `<circle cx="${x}" cy="${y}" r="9" fill="${c}"/><circle cx="${f(x + 3)}" cy="${f(y - 3.5)}" r="2.8" fill="${c === P.ice ? P.onyx : P.ice}" opacity=".9"/>`;
+      case 'tiny': return `<circle cx="${x}" cy="${y}" r="4.4" fill="${c}"/>`;
+      case 'wide': return `<ellipse cx="${x}" cy="${y}" rx="8.5" ry="5.5" fill="${c}"/>`;
+      case 'ring': return `<circle cx="${x}" cy="${y}" r="9.5" fill="${P.ice}" stroke="${c}" stroke-width="2.5"/><circle cx="${f(x + 1.5)}" cy="${f(y + 1)}" r="4.6" fill="${c === P.ice ? P.onyx : c}"/>`;
+      default: return `<ellipse cx="${x}" cy="${y}" rx="6.6" ry="10" fill="${c}"/>`;
+    }
+  }
+  const darkInk = c === P.onyx || c === P.mal;
+  const hl = darkInk ? P.ice : P.onyx;
+  const m = rich && c === P.onyx ? 'url(#eyeGrad)' : c;   // glossy bead on the big preview/export
+  const spark = (dx, dy, r) => darkInk ? `<circle cx="${f(x + dx)}" cy="${f(y + dy)}" r="${r}" fill="${P.ice}" opacity=".92"/>` : '';
+  const spark2 = (dx, dy, r) => darkInk && rich ? `<circle cx="${f(x + dx)}" cy="${f(y + dy)}" r="${r}" fill="${P.ice}" opacity=".5"/>` : '';
+  switch (style) {
+    case 'round': return `<circle cx="${x}" cy="${y}" r="7.5" fill="${m}"/>${spark(2.4, -2.6, 1.9)}${spark2(-2.4, 3, .9)}`;
+    case 'shiny': return `<circle cx="${x}" cy="${y}" r="9" fill="${m}"/><circle cx="${f(x + 3)}" cy="${f(y - 3.5)}" r="3" fill="${hl}"/><circle cx="${f(x - 3)}" cy="${f(y + 3)}" r="1.4" fill="${hl}"/>`;
+    case 'tiny': return `<circle cx="${x}" cy="${y}" r="4.2" fill="${m}"/>${spark2(1.3, -1.4, .9)}`;
+    case 'wide': return `<ellipse cx="${x}" cy="${y}" rx="8.5" ry="5.5" fill="${m}"/>${spark(3, -1.8, 1.6)}`;
+    case 'ring': return `<circle cx="${x}" cy="${y}" r="9.5" fill="${P.ice}" stroke="${c}" stroke-width="2.5"/><circle cx="${f(x + 1.5)}" cy="${f(y + 1)}" r="4.6" fill="${c === P.ice ? P.onyx : m}"/><circle cx="${f(x + 3)}" cy="${f(y - .8)}" r="1.4" fill="${P.ice}"/>`;
+    default: return `<ellipse cx="${x}" cy="${y}" rx="6.2" ry="9.2" fill="${m}"/>${spark(1.9, -3.8, 1.7)}${spark2(-1.6, 4, .8)}`;
+  }
+}
+
+function face(cx, fy, gap, o, rich = false) {
+  cx = f(cx); fy = f(fy); gap = f(gap);
+  const c = P[o.eyeColor], mood = o.mood;
+  let out = '';
+  if (['happy', 'love', 'cheeky', 'calm', 'dreamy', 'excited', 'wink', 'silly', 'shy'].includes(mood)) {
+    const ck = P[CHEEK[o.color]];
+    [-1, 1].forEach(s => out += rich
+      ? `<ellipse cx="${f(cx + s * (gap + 11))}" cy="${f(fy + 13)}" rx="10" ry="6.5" fill="url(#blush)"/>`
+      : `<ellipse cx="${f(cx + s * (gap + 11))}" cy="${f(fy + 13)}" rx="7" ry="4.5" fill="${ck}" opacity=".8"/>`);
+  }
+  [-1, 1].forEach(side => {
+    const x = f(cx + side * gap), y = fy;
+    if (mood === 'sleepy') out += `<path d="M${f(x - 7)} ${y} Q${x} ${f(y + 6)} ${f(x + 7)} ${y}" ${stroke(c)}/>`;
+    else if (mood === 'love') out += `<path transform="translate(${x} ${y}) scale(1.25)" d="${HEART}" fill="${c}"/>`;
+    else if (mood === 'excited') out += `<path d="M${f(x - 7)} ${f(y + 3)} Q${x} ${f(y - 7)} ${f(x + 7)} ${f(y + 3)}" ${stroke(c, 3.4)}/>`;
+    else if ((mood === 'cheeky' || mood === 'wink') && side === 1) out += `<path d="M${f(x - 7)} ${f(y + 2)} Q${x} ${f(y - 6)} ${f(x + 7)} ${f(y + 2)}" ${stroke(c)}/>`;
+    else {
+      let sx = 1, sy = 1, dy = 0;
+      if (mood === 'surprised') { sx = sy = 1.3; }
+      if (mood === 'grumpy') { sy = .62; dy = 2; }
+      if (mood === 'dreamy') { dy = -2; }
+      if (mood === 'shy') { sx = sy = .85; dy = 2.5; }
+      if (mood === 'smug') { sy = .5; dy = 2.5; }
+      if (mood === 'silly') { sx = sy = side < 0 ? 1.28 : .78; }
+      const mt = rich && (o.style === 'soft' || o.style === 'glow');
+      const e = eyeShape(x, y, o.eyes, c, rich && !mt, mt);
+      out += (sx === 1 && sy === 1 && dy === 0) ? e : `<g transform="translate(${x} ${f(y + dy)}) scale(${sx} ${sy}) translate(${-x} ${-y})">${e}</g>`;
+    }
+  });
+  if (mood === 'grumpy') out += `<path d="M${f(cx - gap - 8)} ${f(fy - 16)} L${f(cx - gap + 7)} ${f(fy - 10)} M${f(cx + gap + 8)} ${f(fy - 16)} L${f(cx + gap - 7)} ${f(fy - 10)}" ${stroke(c, 3.4)}/>`;
+  if (mood === 'sad' || mood === 'worried') out += `<path d="M${f(cx - gap - 7)} ${f(fy - 12)} L${f(cx - gap + 7)} ${f(fy - 17)} M${f(cx + gap + 7)} ${f(fy - 12)} L${f(cx + gap - 7)} ${f(fy - 17)}" ${stroke(c, 3)}/>`;
+  if (mood === 'surprised') [-1, 1].forEach(s => { const x = f(cx + s * gap); out += `<path d="M${f(x - 7)} ${f(fy - 19)} Q${x} ${f(fy - 25)} ${f(x + 7)} ${f(fy - 19)}" ${stroke(c, 3)}/>`; });
+  const my = f(fy + 21);
+  switch (mood) {
+    case 'happy': out += `<path d="M${f(cx - 10)} ${f(my - 2)} Q${cx} ${f(my + 13)} ${f(cx + 10)} ${f(my - 2)} Z" fill="${c}" stroke="${c}" stroke-width="1.5" stroke-linejoin="round"/>`; break;
+    case 'calm': out += `<path d="M${f(cx - 7)} ${my} Q${cx} ${f(my + 5)} ${f(cx + 7)} ${my}" ${stroke(c, 3)}/>`; break;
+    case 'sleepy': out += `<ellipse cx="${cx}" cy="${f(my + 2)}" rx="3" ry="3.6" fill="${c}"/>`; break;
+    case 'surprised': out += `<ellipse cx="${cx}" cy="${f(my + 4)}" rx="5.5" ry="7.5" fill="${c}"/>`; break;
+    case 'grumpy': out += `<path d="M${f(cx - 8)} ${f(my + 4)} Q${cx} ${f(my - 3)} ${f(cx + 8)} ${f(my + 4)}" ${stroke(c, 3.2)}/>`; break;
+    case 'sad': out += `<path d="M${f(cx - 8)} ${f(my + 5)} Q${cx} ${f(my - 2)} ${f(cx + 8)} ${f(my + 5)}" ${stroke(c, 3)}/>`; break;
+    case 'love': out += `<path d="M${f(cx - 8)} ${f(my - 1)} Q${cx} ${f(my + 10)} ${f(cx + 8)} ${f(my - 1)} Z" fill="${c}" stroke="${c}" stroke-width="1.5" stroke-linejoin="round"/>`; break;
+    case 'cheeky': {
+      const tg = P[o.color === 'em' ? 'mal' : 'em'];
+      out += `<path d="M${f(cx - 1)} ${f(my + 3)} q0 10 5.5 10 q5.5 0 5.5 -10 z" fill="${tg}" stroke="${c}" stroke-width="1.6"/>`;
+      out += `<path d="M${f(cx - 10)} ${my} Q${cx} ${f(my + 7)} ${f(cx + 10)} ${my}" ${stroke(c, 3)}/>`; break;
+    }
+    case 'excited': out += `<path d="M${f(cx - 12)} ${f(my - 3)} Q${cx} ${f(my + 17)} ${f(cx + 12)} ${f(my - 3)} Z" fill="${c}" stroke="${c}" stroke-width="1.5" stroke-linejoin="round"/>`; break;
+    case 'wink': out += `<path d="M${f(cx - 10)} ${my} Q${cx} ${f(my + 8)} ${f(cx + 10)} ${my}" ${stroke(c, 3)}/>`; break;
+    case 'silly': {
+      const tg = P[o.color === 'em' ? 'mal' : 'em'];
+      out += `<path d="M${f(cx - 5.5)} ${f(my + 3)} q0 11 5.5 11 q5.5 0 5.5 -11 z" fill="${tg}" stroke="${c}" stroke-width="1.6"/>`;
+      out += `<path d="M${f(cx - 11)} ${f(my - 1)} Q${cx} ${f(my + 8)} ${f(cx + 11)} ${f(my - 1)}" ${stroke(c, 3)}/>`; break;
+    }
+    case 'shy': out += `<path d="M${f(cx - 6)} ${f(my + 2)} q3 -3 6 0 q3 3 6 0" ${stroke(c, 2.6)}/>`; break;
+    case 'smug': out += `<path d="M${f(cx - 8)} ${f(my + 2)} Q${f(cx + 2)} ${f(my + 5)} ${f(cx + 10)} ${f(my - 3)}" ${stroke(c, 3)}/>`; break;
+    case 'worried': out += `<path d="M${f(cx - 9)} ${f(my + 3)} q4.5 -4 9 0 q4.5 4 9 0" ${stroke(c, 2.8)}/>`; break;
+    case 'dreamy': out += `<path d="M${f(cx - 6)} ${f(my + 1)} Q${cx} ${f(my + 6)} ${f(cx + 6)} ${f(my + 1)}" ${stroke(c, 3)}/>`; break;
+  }
+  return out;
+}
+
+function glasses(cx, fy, gap, id, c) {
+  if (id === 'none') return '';
+  cx = f(cx); fy = f(fy);
+  const R = f(gap * .68), lens = `fill="${P.ice}" fill-opacity=".2"`;
+  const L = f(cx - gap), Rx = f(cx + gap);
+  const bridge = `<path d="M${f(L + R)} ${f(fy - 1)} Q${cx} ${f(fy - 7)} ${f(Rx - R)} ${f(fy - 1)}" ${stroke(c, 4.2)}/>`;
+  const arms = `<path d="M${f(L - R)} ${f(fy - 3)} l-9 -3 M${f(Rx + R)} ${f(fy - 3)} l9 -3" ${stroke(c, 4.2)}/>`;
+  const glints = [L, Rx].map(x => `<path d="M${f(x - R * .55)} ${f(fy - R * .15)} Q${f(x - R * .5)} ${f(fy - R * .55)} ${f(x - R * .1)} ${f(fy - R * .6)}" ${stroke(P.ice, 1.8)} opacity=".85"/>`).join('');
+  switch (id) {
+    case 'round': return `${arms}${bridge}<circle cx="${L}" cy="${fy}" r="${R}" ${lens} stroke="${c}" stroke-width="4.2"/><circle cx="${Rx}" cy="${fy}" r="${R}" ${lens} stroke="${c}" stroke-width="4.2"/>${glints}`;
+    case 'square': return `${arms}${bridge}` + [L, Rx].map(x => `<rect x="${f(x - R)}" y="${f(fy - R * .82)}" width="${f(R * 2)}" height="${f(R * 1.64)}" rx="5" ${lens} stroke="${c}" stroke-width="4.2"/>`).join('') + glints;
+    case 'shades': {
+      const glint = c === P.ice ? P.onyx : P.ice;
+      return `${arms}${bridge}` + [L, Rx].map(x => `<rect x="${f(x - R - 1)}" y="${f(fy - R * .75)}" width="${f(R * 2 + 2)}" height="${f(R * 1.5)}" rx="${f(R * .7)}" fill="${c}" stroke="${c}" stroke-width="2.5"/><path d="M${f(x - R * .5)} ${f(fy - R * .25)} l${f(R * .5)} -${f(R * .3)}" ${stroke(glint, 2.2)} opacity=".75"/>`).join('');
+    }
+    case 'cat': {
+      const lensPath = (x, s) => { const X = v => f(x + s * v); return `M${X(-R)} ${f(fy - R * .45)} Q${X(0)} ${f(fy - R * .85)} ${X(R * 1.15)} ${f(fy - R * .95)} Q${X(R)} ${f(fy + R * .8)} ${X(0)} ${f(fy + R * .78)} Q${X(-R)} ${f(fy + R * .8)} ${X(-R)} ${f(fy - R * .45)}Z`; };
+      return `${bridge}<path d="${lensPath(Rx, 1)}" ${lens} stroke="${c}" stroke-width="4.2" stroke-linejoin="round"/><path d="${lensPath(L, -1)}" ${lens} stroke="${c}" stroke-width="4.2" stroke-linejoin="round"/>${glints}`;
+    }
+    case 'hearts': return `${bridge}` + [L, Rx].map(x => `<path transform="translate(${x} ${f(fy + 1)}) scale(${f(R / 8.5)})" d="${HEART}" ${lens} stroke="${c}" stroke-width="${f(4.2 * 8.5 / R)}" stroke-linejoin="round"/>`).join('');
+  }
+  return '';
+}
+
+/* Hats are flat lists of elements (no nested groups) so the same markup works as a clip path. */
+/* Extras. Flat lists of elements (no nested groups) so the same markup works as a clip path.
+   Origin = top of the head; cupY = distance from there down to eye level. */
+function hat(id, cid, hw, cupY) {
+  if (id === 'none') return '';
+  hw = f(hw); cupY = f(cupY);
+  const c = P[cid], c2 = P[SECOND[cid]];
+  switch (id) {
+    case 'beret': return `<circle cx="-17" cy="-21" r="7" fill="${c}"/><path d="M-62 -2 C-66 -24 -34 -40 2 -40 C34 -40 50 -28 46 -14 C42 -2 14 4 -18 6 C-42 8 -60 8 -62 -2 Z" transform="translate(-7 16) rotate(-12 -8 -16)" fill="${c}"/>`;
+    case 'cap': return `<path d="M-40 6 C-42 -26 -22 -44 0 -44 C22 -44 42 -26 40 6 C26 10 -26 10 -40 6 Z" fill="${c}"/>`
+      + `<path d="M14 4 C34 -4 62 -4 72 4 C70 12 58 15 40 14 C28 13 18 10 14 4 Z" fill="${c}"/>`
+      + `<circle cx="0" cy="-43" r="5" fill="${c}"/>`;
+    case 'crown': return `<path d="M-34 4 C-35 -10 -37 -26 -38 -38 C-30 -30 -22 -24 -15 -20 C-10 -30 -5 -40 0 -48 C5 -40 10 -30 15 -20 C22 -24 30 -30 38 -38 C37 -26 35 -10 34 4 C12 8 -12 8 -34 4 Z" fill="${c}"/>`
+      + [[-38, -40], [0, -50], [38, -40]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5.5" fill="${c}"/>`).join('')
+      + `<ellipse cx="0" cy="-8" rx="6" ry="6" fill="${c2}"/><ellipse cx="-20" cy="-7" rx="4" ry="4" fill="${c2}"/><ellipse cx="20" cy="-7" rx="4" ry="4" fill="${c2}"/>`;
+    case 'bow': { const t = 'transform="translate(32 -4) rotate(16)"'; return `<path ${t} d="M0 0 C-6 -12 -22 -20 -27 -9 C-31 0 -27 13 -15 13 C-9 13 -4 7 0 0 Z" fill="${c}"/><path ${t} d="M0 0 C6 -12 22 -20 27 -9 C31 0 27 13 15 13 C9 13 4 7 0 0 Z" fill="${c}"/><ellipse ${t} cx="0" cy="0" rx="6.5" ry="7.5" fill="${c}"/>`; }
+    case 'party': { const t = 'transform="translate(0 -4) rotate(8)"'; return `<path ${t} d="M-24 2 C-14 -18 -6 -40 -2 -58 C-1 -62 1 -62 2 -58 C6 -40 14 -18 24 2 C10 6 -10 6 -24 2 Z" fill="${c}"/><path ${t} d="M-15 -18 C-5 -15 5 -15 15 -18 M-8 -38 C-3 -36 3 -36 8 -38" ${stroke(c2, 4.5)}/><circle ${t} cx="0" cy="-63" r="7.5" fill="${c2}"/>`; }
+    case 'sprout': { const t = 'transform="translate(0 -6)"'; return `<path ${t} d="M0 6 C0 -8 2 -18 0 -28" ${stroke(c, 5)}/><path ${t} d="M0 -24 C-6 -40 -28 -42 -34 -30 C-26 -18 -8 -18 0 -24Z" fill="${c}"/><path ${t} d="M0 -28 C8 -48 32 -48 36 -36 C28 -24 8 -22 0 -28Z" fill="${c}"/>`; }
+    case 'bowtie': {
+      const y = f(cupY + 42);
+      const wing = sx => `<path d="M${-3 * sx} ${f(y - 3)} C${-12 * sx} ${f(y - 14)} ${-27 * sx} ${f(y - 17)} ${-31 * sx} ${f(y - 7)} C${-33 * sx} ${f(y + 1)} ${-31 * sx} ${f(y + 11)} ${-26 * sx} ${f(y + 14)} C${-18 * sx} ${f(y + 15)} ${-10 * sx} ${f(y + 9)} ${-3 * sx} ${f(y + 3)} Z" fill="${c}"/>`;
+      return wing(1) + wing(-1) + `<rect x="-7" y="${f(y - 7)}" width="14" height="14" rx="5" fill="${c}"/>`;
+    }
+    case 'phones': {
+      const mx = f(hw * .42), my = f(cupY + 36);
+      return `<path d="M${-hw} ${f(cupY - 4)} C${-hw} -54 ${hw} -54 ${hw} ${f(cupY - 4)}" ${stroke(c, 8)}/>`
+        + `<ellipse cx="${-hw}" cy="${cupY}" rx="10" ry="17" fill="${c}"/><ellipse cx="${hw}" cy="${cupY}" rx="10" ry="17" fill="${c}"/>`
+        + `<path d="M${f(hw - 2)} ${f(cupY + 12)} C${f(hw + 2)} ${f(cupY + 34)} ${f(hw * .7)} ${my} ${f(mx + 6)} ${my}" ${stroke(c, 4.5)}/>`
+        + `<ellipse cx="${mx}" cy="${my}" rx="7" ry="6" fill="${c}"/>`;
+    }
+  }
+  return '';
+}
+
+function flatShape(id, fill) { return `<g fill="${fill}">${SHAPES.find(x => x.id === id).svg}</g>`; }
+
+/* Soft 3D: inflated dome from a multi-scale blur of the silhouette, lit softly; crisp edge. */
+function softFilter(id, o, k) {
+  const d = o.pDepth / 100, sh = o.pShine / 100;
+  const b1 = f((2.5 + d * 3) * k), b2 = f((7 + d * 9) * k), b3 = f((14 + d * 18) * k), ss = f(3 + d * 7);
+  return `<filter id="${id}" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="A"/>
+<feGaussianBlur in="A" stdDeviation="${b1}" result="g1"/>
+<feGaussianBlur in="A" stdDeviation="${b2}" result="g2"/>
+<feGaussianBlur in="A" stdDeviation="${b3}" result="g3"/>
+<feComposite in="g1" in2="g2" operator="arithmetic" k1="0" k2=".3" k3=".35" k4="0" result="g12"/>
+<feComposite in="g12" in2="g3" operator="arithmetic" k1="0" k2="1" k3=".35" k4="0" result="height"/>
+<feDiffuseLighting in="height" surfaceScale="${ss}" diffuseConstant="1" lighting-color="#FFFFFF" result="diffRaw"><feDistantLight azimuth="225" elevation="46"/></feDiffuseLighting>
+<feGaussianBlur in="diffRaw" stdDeviation="${f(1.6 * k)}" result="diff"/>
+<feSpecularLighting in="height" surfaceScale="${ss}" specularConstant="${f(.15 + sh * .85)}" specularExponent="${f(26 - sh * 14)}" lighting-color="#FFFFFF" result="specRaw"><feDistantLight azimuth="225" elevation="58"/></feSpecularLighting>
+<feGaussianBlur in="specRaw" stdDeviation="${f(1.8 * k)}" result="spec"/>
+<feComposite in="SourceGraphic" in2="diff" operator="arithmetic" k1=".78" k2=".4" k3="0" k4="0" result="lit"/>
+<feComposite in="spec" in2="SourceGraphic" operator="in" result="specIn"/>
+<feComposite in="lit" in2="specIn" operator="arithmetic" k1="0" k2="1" k3="${f(.25 + sh * .45)}" k4="0" result="sum"/>
+<feComposite in="sum" in2="SourceGraphic" operator="in"/>
+</filter>`;
+}
+/* Glow: soft luminous interior with an outer halo, like a light-filled jelly. */
+function glowFilter(id, o) {
+  const gl = o.pGlow / 100;
+  return `<filter id="${id}" x="-35%" y="-35%" width="170%" height="170%" color-interpolation-filters="sRGB">
+<feGaussianBlur in="SourceGraphic" stdDeviation="5" result="soft"/>
+<feComposite in="soft" in2="SourceGraphic" operator="in" result="inner"/>
+<feGaussianBlur in="SourceGraphic" stdDeviation="${f(8 + gl * 16)}" result="halo"/>
+<feColorMatrix in="halo" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 ${f(gl * .85)} 0" result="halo2"/>
+<feMerge><feMergeNode in="halo2"/><feMergeNode in="inner"/></feMerge>
+</filter>
+<filter id="${id}Eyes" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+<feGaussianBlur in="SourceGraphic" stdDeviation="${f(1.5 + gl * 2.5)}" result="b"/>
+<feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+</filter>`;
+}
+/* glow colours, built from the body colour and its palette neighbours */
+const GLOW_SET = {
+  onyx: ['mal', 'em', 'sea'], mal: ['onyx', 'em', 'sea'], em: ['mal', 'em', 'ice'], sea: ['em', 'sea', 'ice'], ice: ['sea', 'ice', 'ice']
+};
+
+/* Plush 3D: fuzzy edge + puffy bump lighting from the shape's own blurred silhouette, with fur in the height map. */
+function plushFilter(id, o, k) {
+  const fuzz = f(o.pFuzz / 10 * 7 * k);
+  const blur = f((3 + o.pPuff / 100 * 10) * k);
+  const ss = f(2 + o.pPuff / 100 * 4);
+  const fur = f(o.pFur / 100 * .5);
+  return `<filter id="${id}" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4" result="fur"/>
+<feDisplacementMap in="SourceGraphic" in2="fur" scale="${fuzz}" xChannelSelector="R" yChannelSelector="G" result="shape"/>
+<feColorMatrix in="shape" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="shapeA"/>
+<feGaussianBlur in="shapeA" stdDeviation="${blur}" result="blurA"/>
+<feColorMatrix in="fur" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0" result="furA"/>
+<feComposite in="blurA" in2="furA" operator="arithmetic" k1="0" k2="1" k3="${fur}" k4="0" result="height"/>
+<feDiffuseLighting in="height" surfaceScale="${ss}" diffuseConstant="1.05" lighting-color="#FFFFFF" result="diff"><feDistantLight azimuth="235" elevation="50"/></feDiffuseLighting>
+<feSpecularLighting in="height" surfaceScale="${ss}" specularConstant=".55" specularExponent="30" lighting-color="#FFFFFF" result="spec"><feDistantLight azimuth="235" elevation="50"/></feSpecularLighting>
+<feComposite in="shape" in2="diff" operator="arithmetic" k1="0.92" k2="0.28" k3="0" k4="0" result="lit"/>
+<feComposite in="spec" in2="shape" operator="in" result="specIn"/>
+<feComposite in="lit" in2="specIn" operator="arithmetic" k1="0" k2="1" k3="0.4" k4="0" result="sum"/>
+<feComposite in="sum" in2="shape" operator="in"/>
+</filter>`;
+}
+
+/* The character split into layers, in drawing units. Flat = gradients + clip paths (pure vector). Plush = SVG filters. */
+function parts(o) {
+  const s = SHAPES.find(x => x.id === o.shape), b = BOX[s.id];
+  const cx = b.x + b.w / 2, cy = b.y + b.h / 2, fy = b.y + b.h * s.face, top = b.y, bottom = b.y + b.h;
+  const gap = Math.max(15, Math.min(24, b.w * .15));
+  const r = Math.max(b.w, b.h) * .8;
+  const plush = o.style === 'plush', soft = o.style === 'soft', glow = o.style === 'glow';
+  const fx = plush || soft || glow;
+  const hatMk = hat(o.extra, o.extraColor, b.w / 2 - 2, fy - top - 8);
+  const hatNoise = noiseURL && o.nExtras && hatMk;
+  const lightBody = o.color === 'ice' || o.color === 'sea';
+  const g = GEO = { cx, fy, top };
+  const defs = `
+<radialGradient id="ground" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="${P.onyx}" stop-opacity="${plush ? .26 : .2}"/><stop offset=".6" stop-color="${P.onyx}" stop-opacity=".09"/><stop offset="1" stop-color="${P.onyx}" stop-opacity="0"/></radialGradient>
+<radialGradient id="shade" gradientUnits="userSpaceOnUse" cx="${f(cx - b.w * .18)}" cy="${f(b.y + b.h * .3)}" r="${f(r)}">
+<stop offset="0" stop-color="${P.ice}" stop-opacity="0"/><stop offset=".62" stop-color="${P.onyx}" stop-opacity="0"/><stop offset="1" stop-color="${P.onyx}" stop-opacity="${lightBody ? .22 : .3}"/>
+</radialGradient>
+<radialGradient id="light" gradientUnits="userSpaceOnUse" cx="${f(cx - b.w * .2)}" cy="${f(b.y + b.h * .2)}" r="${f(Math.max(b.w, b.h) * .5)}">
+<stop offset="0" stop-color="${P.ice}" stop-opacity="${lightBody ? .7 : .45}"/><stop offset=".55" stop-color="${P.ice}" stop-opacity=".12"/><stop offset="1" stop-color="${P.ice}" stop-opacity="0"/>
+</radialGradient>
+<linearGradient id="belly" gradientUnits="userSpaceOnUse" x1="0" y1="${f(b.y + b.h * .5)}" x2="0" y2="${f(bottom)}">
+<stop offset="0" stop-color="${P.onyx}" stop-opacity="0"/><stop offset="1" stop-color="${P.onyx}" stop-opacity="${lightBody ? .14 : .2}"/>
+</linearGradient>
+<radialGradient id="eyeGrad" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="${P.mal}"/><stop offset=".45" stop-color="${P.onyx}"/><stop offset="1" stop-color="${P.onyx}"/></radialGradient>
+<radialGradient id="blush" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="${P[CHEEK[o.color]]}" stop-opacity=".95"/><stop offset=".6" stop-color="${P[CHEEK[o.color]]}" stop-opacity=".55"/><stop offset="1" stop-color="${P[CHEEK[o.color]]}" stop-opacity="0"/></radialGradient>
+<linearGradient id="hatShade" gradientUnits="userSpaceOnUse" x1="0" y1="-50" x2="0" y2="10">
+<stop offset="0" stop-color="${P.ice}" stop-opacity=".22"/><stop offset=".5" stop-color="${P.ice}" stop-opacity="0"/><stop offset="1" stop-color="${P.onyx}" stop-opacity=".28"/>
+</linearGradient>
+<clipPath id="bodyClip">${s.svg}</clipPath>
+${hatMk ? `<clipPath id="hatClip">${hatMk}</clipPath>` : ''}
+${plush ? plushFilter('plush', o, 1) + plushFilter('plushHat', o, .55) : ''}
+${soft || glow ? softFilter('soft', o, 1) + softFilter('softHat', o, .55) + softFilter('softThin', o, .22) : ''}
+${glow ? glowFilter('glow', o) + (() => { const [a1, a2, a3] = GLOW_SET[o.color].map(k => P[k]); return `<radialGradient id="glowFill" gradientUnits="userSpaceOnUse" cx="${f(cx + b.w * .08)}" cy="${f(b.y + b.h * .72)}" r="${f(Math.max(b.w, b.h) * .75)}"><stop offset="0" stop-color="${a3}"/><stop offset=".3" stop-color="${a2}"/><stop offset=".62" stop-color="${P[o.color]}"/><stop offset="1" stop-color="${a1}"/></radialGradient><radialGradient id="glowShade" gradientUnits="userSpaceOnUse" cx="${f(cx - b.w * .32)}" cy="${f(b.y + b.h * .25)}" r="${f(b.w * .5)}"><stop offset="0" stop-color="${P[a1 === P.onyx ? 'onyx' : 'mal']}" stop-opacity=".85"/><stop offset="1" stop-color="${P.mal}" stop-opacity="0"/></radialGradient><radialGradient id="glowCore" gradientUnits="userSpaceOnUse" cx="${f(cx + b.w * .12)}" cy="${f(fy)}" r="${f(b.w * .32)}"><stop offset="0" stop-color="${P.em}" stop-opacity=".9"/><stop offset="1" stop-color="${P.em}" stop-opacity="0"/></radialGradient>`; })() : ''}`;
+  const shadow = `<ellipse id="Shadow" cx="${f(cx)}" cy="${f(bottom + 20)}" rx="${f(b.w * .4)}" ry="${fx ? 9 : 8}" fill="url(#ground)"${glow ? ' opacity="0"' : ''}/>`;
+  const body = glow
+    ? `<g id="Body"><g filter="url(#glow)">${flatShape(s.id, 'url(#glowFill)')}${flatShape(s.id, 'url(#glowShade)')}${flatShape(s.id, 'url(#glowCore)')}</g>${noiseImage(cx, cy, 'bodyClip', 'Noise')}</g>`
+    : soft
+    ? `<g id="Body"><g filter="url(#soft)">${flatShape(s.id, P[o.color])}</g>${noiseImage(cx, cy, 'bodyClip', 'Noise')}</g>`
+    : plush
+    ? `<g id="Body"><g filter="url(#plush)">${flatShape(s.id, P[o.color])}</g>${noiseImage(cx, cy, 'bodyClip', 'Noise')}</g>`
+    : `<g id="Body">${flatShape(s.id, P[o.color])}${flatShape(s.id, 'url(#belly)')}${flatShape(s.id, 'url(#shade)')}${flatShape(s.id, 'url(#light)')}${noiseImage(cx, cy, 'bodyClip', 'Noise')}</g>`;
+  const faceL = glow
+    ? `<g id="Face" data-drag="face" transform="${tf('face', o, g)}"><g filter="url(#glowEyes)">${face(cx, fy, gap, { ...o, eyeColor: 'ice' }, true)}</g></g>`
+    : `<g id="Face" data-drag="face" transform="${tf('face', o, g)}">${face(cx, fy, gap, o, true)}</g>`;
+  const glassesL = o.glasses !== 'none' ? `<g id="Glasses" data-drag="glasses" transform="${tf('glasses', o, g)}">${soft ? `<g filter="url(#softThin)">${glasses(cx, fy, gap, o.glasses, P[o.glassesColor])}</g>` : glasses(cx, fy, gap, o.glasses, P[o.glassesColor])}</g>` : '';
+  const extra = !hatMk ? '' : fx
+    ? `<g id="Extra" data-drag="extra" transform="${tf('extra', o, g)}"><g filter="url(#${plush ? 'plushHat' : 'softHat'})">${hatMk}</g>${hatNoise ? noiseImage(0, -10, 'hatClip', 'Extra noise') : ''}</g>`
+    : `<g id="Extra" data-drag="extra" transform="${tf('extra', o, g)}">${hatMk}<rect class="hs" x="-90" y="-90" width="180" height="180" fill="url(#hatShade)" clip-path="url(#hatClip)"/>${hatNoise ? noiseImage(0, -10, 'hatClip', 'Extra noise') : ''}</g>`;
+  return { defs, shadow, body, face: faceL, glasses: glassesL, extra };
+}
+function character(o) {
+  const p = parts(o);
+  return `<defs>${p.defs}</defs>${p.shadow}${p.body}${p.face}${p.glasses}${p.extra}`;
+}
+
+/* Frame the drawing: square box around everything visible, with even padding. Preview and export share it. */
+let FIT = { x: -25, y: -40, s: 250 };
+function fitFrame() {
+  const svg = document.getElementById('main');
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return;
+  const inv = ctm.inverse();
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  svg.querySelectorAll('#Shadow, #Body > g, #Face > *, #Glasses > *, #Extra > :not(image):not(.hs)').forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (!r.width && !r.height) return;
+    [[r.left, r.top], [r.right, r.bottom]].forEach(([px, py]) => {
+      const p = new DOMPoint(px, py).matrixTransform(inv);
+      x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y);
+    });
+  });
+  if (!isFinite(x0)) return;
+  const s = Math.max(x1 - x0, y1 - y0) * 1.24;
+  FIT = { x: f((x0 + x1) / 2 - s / 2), y: f((y0 + y1) / 2 - s / 2), s: f(s) };
+  svg.setAttribute('viewBox', `${FIT.x} ${FIT.y} ${FIT.s} ${FIT.s}`);
+}
+
+function renderMain() {
+  const svg = document.getElementById('main');
+  svg.setAttribute('viewBox', '-25 -40 250 250');
+  svg.innerHTML = character(state);
+  fitFrame();
+  markSelected();
+  if (typeof scheduleCommit === 'function') scheduleCommit();
+  document.getElementById('chip').textContent = `Feeling ${MOODS.find(m => m.id === state.mood).name.toLowerCase()}`;
+}
+function markSelected() {
+  const svg = document.getElementById('main');
+  svg.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+  const el = svg.querySelector(`[data-drag="${selected}"]`);
+  if (el) el.classList.add('selected');
+}
+/* update one part's transform in place (no full redraw, so the frame holds still while you move it) */
+function applyLayer(layer) {
+  const el = document.getElementById('main').querySelector(`[data-drag="${layer}"]`);
+  if (el) el.setAttribute('transform', tf(layer, state, GEO));
+}
+
+/* ---------- tiles ---------- */
+/* shared filters for the small previews (fixed settings so the grid stays fast) */
+document.body.insertAdjacentHTML('beforeend', `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${softFilter('tBig', { pDepth: 60, pShine: 45 }, 1)}${softFilter('tBody', { pDepth: 60, pShine: 45 }, .5)}${softFilter('tHat', { pDepth: 60, pShine: 45 }, .55)}${softFilter('tThin', { pDepth: 60, pShine: 45 }, .22)}</defs></svg>`);
+const fx3d = (id, inner) => state.style === 'soft' ? `<g filter="url(#${id})">${inner}</g>` : inner;
+/* a whole little character: body r=42 at (100,112), face, optional glasses and extra */
+function miniChar(o, { glassesId = 'none', extraId = 'none' } = {}) {
+  const body = fx3d('tBody', `<circle cx="100" cy="112" r="42" fill="${P[o.color]}"/>`);
+  const faceM = face(100, 106, 13, o);
+  const gl = glassesId !== 'none' ? fx3d('tThin', glasses(100, 106, 13, glassesId, P[o.glassesColor])) : '';
+  const ex = extraId !== 'none' ? `<g transform="translate(100 76) scale(.64)">${fx3d('tHat', hat(extraId, o.extraColor, 62, 46))}</g>` : '';
+  return body + faceM + gl + ex;
+}
+function tileSVG(kind, id) {
+  const o = { ...state };
+  if (kind === 'shape') return `<svg viewBox="12 16 176 176" aria-hidden="true">${fx3d('tBig', flatShape(id, P[state.color]))}</svg>`;
+  if (kind === 'eyes') { o.eyes = id; o.mood = 'plain'; return `<svg viewBox="52 60 96 96" aria-hidden="true">${miniChar(o)}</svg>`; }
+  if (kind === 'mood') { o.mood = id; return `<svg viewBox="50 58 100 100" aria-hidden="true">${miniChar(o)}</svg>`; }
+  if (kind === 'glasses') return `<svg viewBox="50 58 100 100" aria-hidden="true">${miniChar({ ...o, mood: 'plain' }, { glassesId: id })}</svg>`;
+  return `<svg viewBox="40 30 120 120" aria-hidden="true">${miniChar({ ...o, mood: 'plain' }, { extraId: id })}</svg>`;
+}
+
+const TAB_ITEMS = { shape: [SHAPES, 'shape'], eyes: [EYES, 'eyes'], mood: [MOODS, 'mood'], glasses: [GLASSES, 'glasses'], extras: [EXTRAS, 'extra'] };
+
+function renderTabs() {
+  document.getElementById('tabs').innerHTML = TABS.map(t =>
+    `<button class="tab" role="tab" id="tab-${t.id}" aria-selected="${t.id === tab}" data-tab="${t.id}">${t.name}</button>`).join('');
+}
+function renderSwatches() {
+  const t = TABS.find(x => x.id === tab), bar = document.getElementById('swatchbar');
+  if (!t.colorKey) {
+    bar.innerHTML = `<div class="combo" id="combo">
+      <svg class="combo-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="mood-search" type="text" placeholder="Search ${MOODS.length} moods, e.g. happy, tired, love" autocomplete="off" spellcheck="false"
+        role="combobox" aria-expanded="false" aria-controls="mood-list" aria-autocomplete="list" aria-label="Search moods" value="${moodQuery.replace(/"/g, '&quot;')}">
+      <button class="combo-toggle" id="mood-toggle" type="button" aria-label="Show all moods" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+      <ul id="mood-list" class="combo-list" role="listbox" aria-label="Moods" hidden></ul>
+    </div>`;
+    wireCombo();
+    return;
+  }
+  const cur = state[t.colorKey], curName = COLORS.find(c => c.id === cur).name;
+  bar.innerHTML = `<div class="swatches">` + COLORS.map(c =>
+    `<button class="sw" id="sw-${c.id}" style="background:${P[c.id]}" aria-pressed="${c.id === cur}" aria-label="${c.name}" title="${c.name}" data-color="${c.id}"></button>`).join('') +
+    `</div><div class="swname">${t.label} · ${curName} ${P[cur].slice(1)}</div>`;
+}
+/* ---------- mood search ---------- */
+let moodQuery = '', comboActive = 0;
+const moodMatches = q => {
+  q = q.trim().toLowerCase();
+  if (!q) return MOODS;
+  return MOODS.filter(m => m.name.toLowerCase().includes(q) || m.k.split(' ').some(w => w.startsWith(q)) || m.k.includes(q));
+};
+function moodIcon(id) {
+  const o = { ...state, mood: id };
+  return `<svg viewBox="52 60 96 96" aria-hidden="true"><circle cx="100" cy="112" r="42" fill="${P[o.color]}"/>${face(100, 106, 13, o)}</svg>`;
+}
+function wireCombo() {
+  const input = document.getElementById('mood-search'), list = document.getElementById('mood-list');
+  const open = () => { renderComboList(); list.hidden = false; input.setAttribute('aria-expanded', 'true'); };
+  const close = () => { list.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); };
+  const pick = id => {
+    state.mood = id; moodQuery = ''; input.value = ''; close();
+    renderMain(); renderGrid();
+    toast(`Mood set to ${MOODS.find(m => m.id === id).name.toLowerCase()}.`);
+  };
+  input.addEventListener('focus', open);
+  input.addEventListener('input', () => { moodQuery = input.value; comboActive = 0; open(); renderGrid(); });
+  input.addEventListener('keydown', e => {
+    const items = moodMatches(moodQuery);
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (list.hidden) open(); comboActive = Math.min(items.length - 1, comboActive + 1); renderComboList(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); comboActive = Math.max(0, comboActive - 1); renderComboList(); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (items[comboActive]) pick(items[comboActive].id); }
+    else if (e.key === 'Escape') { if (moodQuery) { moodQuery = ''; input.value = ''; renderGrid(); renderComboList(); } else close(); }
+  });
+  list.addEventListener('pointerdown', e => { const li = e.target.closest('[data-mood]'); if (li) { e.preventDefault(); pick(li.dataset.mood); } });
+  list.addEventListener('pointermove', e => { const li = e.target.closest('[data-idx]'); if (li && +li.dataset.idx !== comboActive) { comboActive = +li.dataset.idx; renderComboList(); } });
+  document.getElementById('mood-toggle').addEventListener('pointerdown', e => { e.preventDefault(); if (list.hidden) { input.focus(); open(); } else close(); });
+  input.addEventListener('blur', () => setTimeout(close, 120));
+}
+function renderComboList() {
+  const list = document.getElementById('mood-list'), input = document.getElementById('mood-search');
+  if (!list) return;
+  const items = moodMatches(moodQuery);
+  comboActive = Math.min(comboActive, Math.max(0, items.length - 1));
+  list.innerHTML = items.length ? items.map((m, i) =>
+    `<li role="option" id="opt-${m.id}" data-mood="${m.id}" data-idx="${i}" aria-selected="${m.id === state.mood}" class="${i === comboActive ? 'active' : ''}">${moodIcon(m.id)}<span>${m.name}</span>${m.id === state.mood ? '<em>Current</em>' : ''}</li>`).join('')
+    : `<li class="empty" role="presentation">No mood matches “${moodQuery.replace(/</g, '&lt;')}”. Try happy, tired or angry.</li>`;
+  if (items[comboActive]) {
+    input.setAttribute('aria-activedescendant', 'opt-' + items[comboActive].id);
+    const el = document.getElementById('opt-' + items[comboActive].id); if (el) el.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function renderGrid() {
+  let [items, key] = TAB_ITEMS[tab];
+  document.getElementById('grid').classList.toggle('cols4', tab === 'mood');
+  if (tab === 'mood' && moodQuery.trim()) {
+    items = moodMatches(moodQuery);
+    if (!items.length) { document.getElementById('grid').innerHTML = `<p class="note grid-empty">No mood matches “${moodQuery.replace(/</g, '&lt;')}”.</p>`; return; }
+  }
+  document.getElementById('grid').innerHTML = items.map(it =>
+    `<button class="tile" id="tile-${tab}-${it.id}" aria-pressed="${state[key] === it.id}" aria-label="${it.name}" title="${it.name}" data-id="${it.id}">${tileSVG(tab, it.id)}${tab !== 'shape' && tab !== 'eyes' ? `<span class="lbl">${it.name}</span>` : ''}</button>`).join('');
+}
+const toneLabel = v => v <= 15 ? 'Dark' : v >= 85 ? 'Light' : v < 45 ? 'Darker' : v > 55 ? 'Lighter' : 'Mixed';
+function renderNoiseControls() {
+  const set = (id, v, txt) => { document.getElementById('n-' + id).value = v; document.getElementById('o-' + id).textContent = txt; };
+  set('amount', state.nAmount, state.nAmount + '%');
+  set('grain', state.nGrain, String(state.nGrain));
+  set('density', state.nDensity, state.nDensity + '%');
+  set('tone', state.nTone, toneLabel(state.nTone));
+  document.getElementById('n-extras').checked = !!state.nExtras;
+}
+function renderAll() {
+  sanitize();
+  if (!layerPresent(selected)) selected = 'face';
+  buildNoise(); renderMain(); renderTabs(); renderSwatches(); renderGrid(); renderNoiseControls(); renderLayerControls(); renderStyle();
+}
+
+document.getElementById('tabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-tab]'); if (!b) return;
+  tab = b.dataset.tab; renderTabs(); renderSwatches(); renderGrid();
+});
+document.getElementById('swatchbar').addEventListener('click', e => {
+  const b = e.target.closest('[data-color]'); if (!b) return;
+  const key = TABS.find(x => x.id === tab).colorKey, val = b.dataset.color;
+  state[key] = val;
+  // keep the face readable: if the body now matches or clashes with the face colour, switch the face to the contrasting ink
+  if (key === 'color') {
+    const darkBody = val === 'onyx' || val === 'mal';
+    const darkEyes = state.eyeColor === 'onyx' || state.eyeColor === 'mal';
+    if (state.eyeColor === val || darkBody === darkEyes) state.eyeColor = darkBody ? 'ice' : 'onyx';
+  }
+  renderMain(); renderSwatches(); renderGrid();
+});
+document.getElementById('grid').addEventListener('click', e => {
+  const b = e.target.closest('[data-id]'); if (!b) return;
+  const key = TAB_ITEMS[tab][1];
+  if (key === 'extra' && state.extra !== b.dataset.id) { state.off.extra = freshOff(); selected = 'extra'; }
+  if (key === 'glasses' && b.dataset.id !== 'none') selected = 'glasses';
+  state[key] = b.dataset.id; renderMain(); renderGrid(); renderLayerControls();
+});
+
+/* ---------- drag & place ---------- */
+const mainSvg = document.getElementById('main');
+let drag = null;
+function toSvg(e) { return new DOMPoint(e.clientX, e.clientY).matrixTransform(mainSvg.getScreenCTM().inverse()); }
+mainSvg.addEventListener('pointerdown', e => {
+  const el = e.target.closest('[data-drag]');
+  if (!el) return;
+  e.preventDefault();
+  selected = el.dataset.drag;
+  const p = toSvg(e), t = state.off[selected];
+  drag = { layer: selected, sx: p.x, sy: p.y, ox: t.x, oy: t.y, moved: false };
+  mainSvg.setPointerCapture(e.pointerId);
+  document.getElementById('stage').classList.add('dragging');
+  markSelected(); renderLayerControls();
+});
+mainSvg.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const p = toSvg(e), t = state.off[drag.layer];
+  t.x = f(drag.ox + p.x - drag.sx); t.y = f(drag.oy + p.y - drag.sy);
+  drag.moved = true;
+  applyLayer(drag.layer);
+});
+function endDrag() {
+  if (!drag) return;
+  const moved = drag.moved; drag = null;
+  document.getElementById('stage').classList.remove('dragging');
+  if (moved) renderMain();   // re-centre the export frame around the new layout
+}
+mainSvg.addEventListener('pointerup', endDrag);
+mainSvg.addEventListener('pointercancel', endDrag);
+
+document.getElementById('stage').addEventListener('keydown', e => {
+  const map = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  if (!map[e.key]) return;
+  e.preventDefault();
+  const step = e.shiftKey ? 5 : 1, t = state.off[selected];
+  t.x = f(t.x + map[e.key][0] * step); t.y = f(t.y + map[e.key][1] * step);
+  applyLayer(selected);
+  clearTimeout(nudgeTimer); nudgeTimer = setTimeout(renderMain, 400);
+});
+let nudgeTimer;
+
+function layerPresent(id) { return id === 'face' || (id === 'glasses' ? state.glasses !== 'none' : state.extra !== 'none'); }
+function renderLayerControls() {
+  document.getElementById('seg').innerHTML = LAYERS.map(l =>
+    `<button id="layer-${l.id}" data-layer="${l.id}" aria-pressed="${l.id === selected}" ${layerPresent(l.id) ? '' : 'disabled title="Pick one in its tab first"'}>${l.name}</button>`).join('');
+  const t = state.off[selected];
+  document.getElementById('l-size').value = Math.round(t.s * 100);
+  document.getElementById('o-size').textContent = Math.round(t.s * 100) + '%';
+  document.getElementById('l-rot').value = Math.round(t.r);
+  document.getElementById('o-rot').textContent = Math.round(t.r) + '°';
+}
+document.getElementById('seg').addEventListener('click', e => {
+  const b = e.target.closest('[data-layer]'); if (!b || b.disabled) return;
+  selected = b.dataset.layer; markSelected(); renderLayerControls();
+});
+document.getElementById('l-size').addEventListener('input', e => {
+  state.off[selected].s = +e.target.value / 100; document.getElementById('o-size').textContent = e.target.value + '%'; applyLayer(selected);
+});
+document.getElementById('l-rot').addEventListener('input', e => {
+  state.off[selected].r = +e.target.value; document.getElementById('o-rot').textContent = e.target.value + '°'; applyLayer(selected);
+});
+['l-size', 'l-rot'].forEach(id => document.getElementById(id).addEventListener('change', renderMain));
+document.getElementById('l-reset').addEventListener('click', () => {
+  state.off[selected] = freshOff(); renderMain(); renderLayerControls();
+  toast(`${LAYERS.find(l => l.id === selected).name} is back in its default spot.`);
+});
+
+let noiseFrame = 0;
+function noiseChanged() {
+  renderNoiseControls();
+  cancelAnimationFrame(noiseFrame);
+  noiseFrame = requestAnimationFrame(() => { buildNoise(); renderMain(); });
+}
+[['amount', 'nAmount'], ['grain', 'nGrain'], ['density', 'nDensity'], ['tone', 'nTone']].forEach(([id, key]) => {
+  document.getElementById('n-' + id).addEventListener('input', e => { state[key] = +e.target.value; noiseChanged(); });
+});
+document.getElementById('n-extras').addEventListener('change', e => { state.nExtras = e.target.checked; renderMain(); });
+document.getElementById('reseed').addEventListener('click', () => { state.nSeed = Math.floor(Math.random() * 1e6); noiseChanged(); });
+
+
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+document.getElementById('shuffle').addEventListener('click', () => {
+  const color = pick(COLORS).id, dark = color === 'onyx' || color === 'mal';
+  Object.assign(state, {
+    color, eyeColor: dark ? 'ice' : 'onyx',
+    glassesColor: pick(COLORS.filter(c => c.id !== color)).id,
+    extraColor: pick(COLORS.filter(c => c.id !== color)).id,
+    shape: pick(SHAPES).id, eyes: pick(EYES).id, mood: pick(MOODS).id,
+    glasses: Math.random() < .45 ? 'none' : pick(GLASSES.slice(1)).id,
+    extra: Math.random() < .2 ? 'none' : pick(EXTRAS.slice(1)).id,
+    off: freshOffs()
+  });
+  if (!layerPresent(selected)) selected = 'face';
+  renderMain(); renderSwatches(); renderGrid(); renderLayerControls();
+});
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+document.getElementById('save').addEventListener('click', () => {
+  try { localStorage.setItem('fuzzy-buddy', JSON.stringify(state)); toast('Saved. Your buddy will be here next time.'); }
+  catch (e) { toast('This browser blocked saving, so your buddy lasts until you close the page.'); }
+});
+
+/* ---------- export ---------- */
+const XMLNS = 'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"';
+const sizeNow = () => +document.getElementById('size').value;
+const bgRect = S => '';   // always transparent
+
+/* Exactly what the preview shows (filters included). Used for PNG. */
+function fullSVG(size) {
+  const S = FIT.s;
+  return `<svg ${XMLNS} width="${size}" height="${size}" viewBox="0 0 ${S} ${S}">${bgRect(S)}<g id="Buddy" transform="translate(${f(-FIT.x)} ${f(-FIT.y)})">${character(state)}</g></svg>`;
+}
+function svgToCanvas(svg, size) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => { const cv = document.createElement('canvas'); cv.width = cv.height = size; cv.getContext('2d').drawImage(img, 0, 0, size, size); resolve(cv); };
+    img.onerror = () => reject(new Error('render'));
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  });
+}
+/* One layer rendered on its own, framed like the whole drawing, as a PNG data URL. */
+async function rasterLayer(markup, defs, size) {
+  const svg = `<svg ${XMLNS} width="${size}" height="${size}" viewBox="${FIT.x} ${FIT.y} ${FIT.s} ${FIT.s}"><defs>${defs}</defs>${markup}</svg>`;
+  return (await svgToCanvas(svg, size)).toDataURL('image/png');
+}
+/* Figma-ready SVG. Flat: all vector. Plush: fur body and hat become image layers (filters can't import), the rest stays vector. */
+async function exportSVG() {
+  const size = sizeNow();
+  if (state.style === 'flat') return fullSVG(size);
+  const p = parts(state), S = FIT.s;
+  const bodyPNG = await rasterLayer(p.body, p.defs, size);
+  const extraPNG = p.extra ? await rasterLayer(p.extra, p.defs, size) : '';
+  const facePNG = state.style === 'glow' ? await rasterLayer(p.face, p.defs, size) : '';
+  const glassesPNG = p.glasses && state.style === 'soft' ? await rasterLayer(p.glasses, p.defs, size) : '';
+  const img = (id, href) => `<image id="${id}" x="${FIT.x}" y="${FIT.y}" width="${S}" height="${S}" preserveAspectRatio="none" xlink:href="${href}"/>`;
+  return `<svg ${XMLNS} width="${size}" height="${size}" viewBox="0 0 ${S} ${S}">${bgRect(S)}<g id="Buddy" transform="translate(${f(-FIT.x)} ${f(-FIT.y)})"><defs>${p.defs}</defs>${p.shadow}${img('Body', bodyPNG)}${facePNG ? img('Face', facePNG) : p.face}${glassesPNG ? img('Glasses', glassesPNG) : p.glasses}${extraPNG ? img('Extra', extraPNG) : ''}</g></svg>`;
+}
+async function pngBlob() {
+  const size = sizeNow();
+  const cv = await svgToCanvas(fullSVG(size), size);
+  return new Promise((res, rej) => cv.toBlob(b => b ? res(b) : rej(new Error('png')), 'image/png'));
+}
+const fileBase = () => `supers-${state.shape}-${state.mood}`;
+
+let downloadsP = null;
+function getDownloads() {
+  if (!window.claude || typeof window.claude.use !== 'function') return Promise.resolve(undefined);
+  return downloadsP || (downloadsP = window.claude.use('downloads').catch(() => null));
+}
+async function offerFile(filename, data) {
+  const dl = await getDownloads();
+  if (dl === undefined) {
+    const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type: 'image/svg+xml' }));
+    const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    toast(`Downloaded ${filename}`); return;
+  }
+  if (!dl) { toast('Downloads are not available in this view. Use Copy SVG or Copy PNG.'); return; }
+  try {
+    const res = await dl.save({ filename, data });
+    if (res && res.status === 'saved') toast(`Saved ${filename}`);
+  } catch (err) {
+    const code = err && err.code;
+    if (code === 'declined') toast('Download cancelled.');
+    else if (code === 'rate_limited') toast('A save prompt is already open. Finish that one first.');
+    else toast('Downloads are not available in this view. Use Copy SVG or Copy PNG.');
+  }
+}
+/* show progress on the button while a render runs */
+async function busy(btn, fn) {
+  if (btn.dataset.busy) return;
+  const html = btn.innerHTML;
+  btn.dataset.busy = '1'; btn.setAttribute('aria-busy', 'true');
+  btn.innerHTML = `<span class="spin" aria-hidden="true"></span>Rendering…`;
+  try { await fn(); } finally { btn.innerHTML = html; delete btn.dataset.busy; btn.removeAttribute('aria-busy'); }
+}
+
+document.getElementById('dl-svg').addEventListener('click', e => busy(e.currentTarget, async () => {
+  try { await offerFile(fileBase() + '.svg', await exportSVG()); }
+  catch (err) { toast('Could not build the SVG in this browser.'); }
+}));
+document.getElementById('dl-png').addEventListener('click', e => busy(e.currentTarget, async () => {
+  try { await offerFile(`${fileBase()}-${sizeNow()}.png`, await pngBlob()); }
+  catch (err) { toast('Could not render the PNG in this browser. Try the SVG.'); }
+}));
+document.getElementById('copy-svg').addEventListener('click', e => busy(e.currentTarget, async () => {
+  if (!navigator.clipboard) { toast('Copying is blocked here. Use the SVG download.'); return; }
+  const svgP = exportSVG();
+  try {
+    if (typeof ClipboardItem !== 'undefined' && navigator.clipboard.write) {
+      await navigator.clipboard.write([new ClipboardItem({ 'text/plain': svgP.then(s => new Blob([s], { type: 'text/plain' })) })]);
+    } else {
+      await navigator.clipboard.writeText(await svgP);
+    }
+    toast('SVG copied. Paste it into Figma.');
+  } catch (err) {
+    try { await navigator.clipboard.writeText(await svgP); toast('SVG copied. Paste it into Figma.'); }
+    catch (e2) { toast('Copying is blocked here. Use the SVG download.'); }
+  }
+}));
+document.getElementById('copy-png').addEventListener('click', e => busy(e.currentTarget, async () => {
+  if (!navigator.clipboard || typeof ClipboardItem === 'undefined') { toast('This browser cannot copy images. Use the PNG download.'); return; }
+  try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob() })]); toast('PNG copied. Paste it anywhere.'); }
+  catch (err) { toast('Copying images is blocked here. Use the PNG download.'); }
+}));
+
+/* ---------- style controls ---------- */
+const STYLE_CTLS = [['depth', 'pDepth', v => v + '%'], ['shine', 'pShine', v => v + '%']];
+const HINTS = {
+  soft: 'Copy SVG, then paste into Figma with ⌘V / Ctrl+V. The 3D body and hat arrive as crisp image layers; face and glasses stay editable vectors. Background is always transparent.',
+  flat: 'Copy SVG, then paste into Figma with ⌘V / Ctrl+V. Everything arrives as editable vector layers on a transparent background.'
+};
+function renderStyle() {
+  document.querySelectorAll('#style-seg [data-style]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.style === state.style)));
+  document.getElementById('soft-box').hidden = state.style !== 'soft';
+  document.getElementById('export-hint').textContent = HINTS[state.style];
+  STYLE_CTLS.forEach(([id, key, fmt]) => { document.getElementById('p-' + id).value = state[key]; document.getElementById('o-' + id).textContent = fmt(state[key]); });
+}
+document.getElementById('style-seg').addEventListener('click', e => {
+  const b = e.target.closest('[data-style]'); if (!b) return;
+  state.style = b.dataset.style; renderStyle(); renderMain(); renderGrid();
+});
+let plushFrame = 0;
+STYLE_CTLS.forEach(([id, key, fmt]) => {
+  document.getElementById('p-' + id).addEventListener('input', e => {
+    state[key] = +e.target.value; document.getElementById('o-' + id).textContent = fmt(state[key]);
+    cancelAnimationFrame(plushFrame); plushFrame = requestAnimationFrame(renderMain);
+  });
+});
+
+/* ---------- undo / redo ---------- */
+let hist = [], hIdx = -1, commitTimer;
+function commit() {
+  const s = JSON.stringify(state);
+  if (hist[hIdx] === s) return;
+  hist = hist.slice(0, hIdx + 1); hist.push(s);
+  if (hist.length > 100) hist.shift();
+  hIdx = hist.length - 1; renderHistory();
+}
+function scheduleCommit() { clearTimeout(commitTimer); commitTimer = setTimeout(commit, 350); }
+function renderHistory() {
+  document.getElementById('undo').disabled = hIdx <= 0;
+  document.getElementById('redo').disabled = hIdx >= hist.length - 1;
+}
+function jump(d) {
+  clearTimeout(commitTimer); commit();
+  const n = hIdx + d; if (n < 0 || n >= hist.length) return;
+  hIdx = n; state = JSON.parse(hist[n]); renderAll(); renderHistory();
+}
+document.getElementById('undo').addEventListener('click', () => jump(-1));
+document.getElementById('redo').addEventListener('click', () => jump(1));
+document.addEventListener('keydown', e => {
+  if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
+  if (e.target.matches('input[type=text], textarea')) return;
+  e.preventDefault(); jump(e.shiftKey ? 1 : -1);
+});
+
+renderAll();
+</script>
+
+</body>
+</html>
