@@ -293,6 +293,8 @@ pre.code .s { color: var(--ice); }
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>Lottie JSON</button>
           <button class="btn" id="copy-lottie">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copy Lottie</button>
+          <button class="btn" id="dl-static" title="Single-frame Lottie JSON with no animation">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>Static JSON</button>
           <button class="btn" id="dl-asvg">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>Animated SVG</button>
           <button class="btn" id="dl-json">
@@ -1318,10 +1320,12 @@ document.getElementById('copy-png').addEventListener('click', e => busy(e.curren
 const animFrame = () => { const s = f(FIT.s * 1.14); return { x: f(FIT.x - (s - FIT.s) / 2), y: f(FIT.y - (s - FIT.s) * .62), s }; };
 const fpsNow = () => +document.getElementById('fps').value;
 
-async function buildLottie() {
-  const size = sizeNow(), fps = fpsNow(), m = motionNow(), fr = animFrame(), k = size / fr.s;
+/* still = true: a single-frame Lottie with no keyframes, for static placements (icons, avatars, placeholders) */
+async function buildLottie(still = false) {
+  const size = sizeNow(), fps = fpsNow(), fr = animFrame(), k = size / fr.s;
+  const m = still ? MOTIONS.find(x => x.id === 'none') : motionNow();
   const p = parts(state), pv = pivots();
-  const op = Math.max(1, Math.round(motionDur() * fps));
+  const op = still ? 1 : Math.max(1, Math.round(motionDur() * fps));
   const X = u => +((u - fr.x) * k).toFixed(2), Y = u => +((u - fr.y) * k).toFixed(2);
   const [shadowPNG, bodyPNG, facePNG, extraPNG] = await Promise.all([
     rasterLayer(p.shadow, p.defs, size, fr), rasterLayer(p.body, p.defs, size, fr),
@@ -1341,11 +1345,11 @@ async function buildLottie() {
     const last = keys[keys.length - 1]; delete last.o; delete last.i;
     return { a: 1, k: keys };
   };
-  const still = (v) => ({ a: 0, k: v });
+  const fixed = (v) => ({ a: 0, k: v });
   const body = track(m, 'body'), faceT = track(m, 'face'), shadow = track(m, 'shadow');
   const [bx, by] = [X(pv.body[0]), Y(pv.body[1])], [fx, fy] = [X(pv.face[0]), Y(pv.face[1])], [sx, sy] = [X(pv.shadow[0]), Y(pv.shadow[1])];
   const layer = (ind, nm, refId, ks, parent) => ({
-    ddd: 0, ind, ty: 2, nm, refId, sr: 1, ks: { o: still([100]), r: still([0]), p: still([0, 0, 0]), a: still([0, 0, 0]), s: still([100, 100, 100]), ...ks },
+    ddd: 0, ind, ty: 2, nm, refId, sr: 1, ks: { o: fixed([100]), r: fixed([0]), p: fixed([0, 0, 0]), a: fixed([0, 0, 0]), s: fixed([100, 100, 100]), ...ks },
     ao: 0, ip: 0, op, st: 0, bm: 0, ...(parent ? { parent } : {})
   });
   const assets = [['shadow', shadowPNG], ['body', bodyPNG], ['face', facePNG], ['extra', extraPNG]].filter(a => a[1])
@@ -1353,25 +1357,25 @@ async function buildLottie() {
   const layers = [
     extraPNG && layer(4, 'Extra', 'img_extra', {}, 2),
     layer(3, 'Face', 'img_face', {
-      a: still([fx, fy, 0]),
+      a: fixed([fx, fy, 0]),
       p: prop(faceT, q => [+(fx + q.x * k).toFixed(2), +(fy + q.y * k).toFixed(2), 0]),
       r: prop(faceT, q => [q.r])
     }, 2),
     layer(2, 'Body', 'img_body', {
-      a: still([bx, by, 0]),
+      a: fixed([bx, by, 0]),
       p: prop(body, q => [+(bx + q.x * k).toFixed(2), +(by + q.y * k).toFixed(2), 0]),
       r: prop(body, q => [q.r]),
       s: prop(body, q => [+(q.sx * 100).toFixed(2), +(q.sy * 100).toFixed(2), 100])
     }),
     layer(1, 'Shadow', 'img_shadow', {
-      a: still([sx, sy, 0]), p: still([sx, sy, 0]),
+      a: fixed([sx, sy, 0]), p: fixed([sx, sy, 0]),
       s: prop(shadow, q => [+(q.s * 100).toFixed(2), +(q.s * 100).toFixed(2), 100]),
       o: prop(shadow, q => [+(q.o * 100).toFixed(2)])
     })
   ].filter(Boolean);
   return {
     v: '5.7.4', fr: fps, ip: 0, op, w: size, h: size, nm: `Supers · ${MOODS.find(x => x.id === state.mood).name} · ${m.name}`, ddd: 0,
-    assets, layers, markers: [], meta: { g: 'Supers', a: '', k: `mood:${state.mood}, motion:${m.id}`, d: '', tc: '' }
+    assets, layers, markers: [], meta: { g: 'Supers', a: '', k: `mood:${state.mood}, motion:${still ? 'static' : m.id}`, d: '', tc: '' }
   };
 }
 function animatedSVG() {
@@ -1406,6 +1410,10 @@ document.getElementById('copy-lottie').addEventListener('click', e => busy(e.cur
   if (!navigator.clipboard) { toast('Copying is blocked here. Use the Lottie download.'); return; }
   try { await navigator.clipboard.writeText(JSON.stringify(await buildLottie())); toast('Lottie JSON copied.'); }
   catch (err) { toast('Copying is blocked here. Use the Lottie download.'); }
+}));
+document.getElementById('dl-static').addEventListener('click', e => busy(e.currentTarget, async () => {
+  try { await offerFile(`${fileBase()}-static.json`, jsonBlob(await buildLottie(true))); }
+  catch (err) { toast('Could not build the static JSON in this browser.'); }
 }));
 document.getElementById('dl-asvg').addEventListener('click', e => busy(e.currentTarget, async () => {
   try { await offerFile(`${fileBase()}-${motionNow().id}-animated.svg`, new Blob([animatedSVG()], { type: 'image/svg+xml' })); }
@@ -1444,7 +1452,7 @@ function renderMode() {
   document.getElementById('code-wrap').hidden = !dev;
   document.getElementById('mode-tag').textContent = dev ? 'Animated files for apps and the web' : 'Static files for Figma';
   document.getElementById('export-hint').textContent = dev
-    ? 'Lottie JSON plays in lottie-web, iOS, Android and React Native: body, face, extra and shadow are separate layers with the motion as keyframes. Animated SVG plays anywhere an image does. Avatar JSON holds the full look plus every keyframe, for building your own renderer. Pick 512 px to keep files small.'
+    ? 'Lottie JSON plays in lottie-web, iOS, Android and React Native: body, face, extra and shadow are separate layers with the motion as keyframes. Static JSON is the same Lottie as a single still frame, with no animation. Animated SVG plays anywhere an image does. Avatar JSON holds the full look plus every keyframe, for building your own renderer. Pick 512 px to keep files small.'
     : HINTS[state.style];
   renderCode();
 }
