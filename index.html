@@ -206,6 +206,28 @@ main.wrap {
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Motion + developer export */
+#main { overflow: visible; }
+.stage.paused #main [id^="pv-"], .stage.dragging #main [id^="pv-"] { animation-play-state: paused; }
+.stage.dragging #main [id^="pv-"] { animation: none !important; }
+.ctl select {
+  grid-column: span 2; width: 100%; height: 40px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--bg); padding: 0 10px; font-weight: 600; color: var(--ink);
+}
+.btn.small svg { width: 16px; height: 16px; }
+.modebar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.modebar .seg button { flex: 0 0 auto; }
+.modebar .tag { font-size: .8rem; color: var(--muted); font-weight: 500; }
+.code-wrap { position: relative; }
+pre.code {
+  margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--onyx); color: var(--sea);
+  font: 12px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; overflow-x: auto; white-space: pre;
+}
+pre.code .k { color: var(--em); }
+pre.code .s { color: var(--ice); }
+.code-wrap .btn { position: absolute; top: 8px; right: 8px; height: 28px; padding: 0 10px; font-size: .78rem; border-radius: 8px; background: rgb(250 254 253 / .1); color: var(--ice); border-color: rgb(250 254 253 / .18); }
+.code-wrap .btn:hover { background: rgb(250 254 253 / .2); }
 </style>
 <style>body{margin:0}[hidden]{display:none!important}</style>
 </head>
@@ -246,6 +268,14 @@ main.wrap {
       <div class="chip" id="chip">Feeling happy</div>
     </div>
     <div class="export">
+      <div class="modebar">
+        <div class="seg mini" id="mode-seg" role="group" aria-label="Export for">
+          <button data-mode="design" aria-pressed="true">Design</button>
+          <button data-mode="dev" aria-pressed="false">Developers</button>
+        </div>
+        <span class="tag" id="mode-tag">Static files for Figma</span>
+      </div>
+      <div id="design-box" style="display:grid;gap:10px">
       <div class="export-row">
         <button class="btn primary" id="copy-svg">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copy SVG</button>
@@ -256,6 +286,19 @@ main.wrap {
         <button class="btn" id="dl-png">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>PNG</button>
       </div>
+      </div>
+      <div id="dev-box" style="display:grid;gap:10px" hidden>
+        <div class="export-row">
+          <button class="btn primary" id="dl-lottie">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>Lottie JSON</button>
+          <button class="btn" id="copy-lottie">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copy Lottie</button>
+          <button class="btn" id="dl-asvg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>Animated SVG</button>
+          <button class="btn" id="dl-json">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H7a2 2 0 0 0-2 2v4l-2 2 2 2v4a2 2 0 0 0 2 2h1"/><path d="M16 4h1a2 2 0 0 1 2 2v4l2 2-2 2v4a2 2 0 0 1-2 2h-1"/></svg>Avatar JSON</button>
+        </div>
+      </div>
       <div class="export-row">
         <label class="opt" for="size">Size
           <select id="size">
@@ -264,8 +307,18 @@ main.wrap {
             <option value="2048">2048 px</option>
           </select>
         </label>
+        <label class="opt" for="fps" id="fps-wrap" hidden>Frame rate
+          <select id="fps">
+            <option value="30">30 fps</option>
+            <option value="60" selected>60 fps</option>
+          </select>
+        </label>
       </div>
       <p class="hint" id="export-hint">Copy SVG, then paste into Figma with ⌘V / Ctrl+V.</p>
+      <div class="code-wrap" id="code-wrap" hidden>
+        <pre class="code" id="code"></pre>
+        <button class="btn" id="copy-code">Copy</button>
+      </div>
     </div>
   </section>
 
@@ -283,6 +336,16 @@ main.wrap {
     <nav class="tabs" role="tablist" id="tabs"></nav>
     <div class="swatchbar" id="swatchbar"></div>
     <div class="grid" id="grid"></div>
+    <div class="texture">
+      <div class="texture-head">
+        <h2>Motion</h2>
+        <button class="btn small" id="a-play" aria-pressed="true"></button>
+      </div>
+      <div class="ctl"><label for="a-pick">Animation</label><select id="a-pick"></select></div>
+      <div class="ctl"><label for="a-speed">Speed</label><input type="range" id="a-speed" min="50" max="200" step="5" value="100"><output id="o-speed" for="a-speed">1×</output></div>
+      <div class="ctl"><label for="a-amt">Intensity</label><input type="range" id="a-amt" min="0" max="150" step="5" value="100"><output id="o-amt" for="a-amt">100%</output></div>
+      <p class="note left" id="a-note">Auto follows the mood: happy bounces, sleepy dozes off, grumpy shakes. Exports as Lottie or animated SVG under Developers.</p>
+    </div>
     <div class="texture">
       <div class="texture-head">
         <h2>Position</h2>
@@ -407,7 +470,8 @@ const DEFAULT = {
   color: 'em', eyeColor: 'onyx', glassesColor: 'onyx', extraColor: 'onyx',
   shape: 'cloud', eyes: 'ovals', mood: 'plain', glasses: 'none', extra: 'beret',
   nAmount: 0, nGrain: 2, nDensity: 70, nTone: 65, nExtras: true, nSeed: 7,
-  style: 'soft', pFuzz: 3, pPuff: 55, pFur: 45, pDepth: 60, pShine: 45, pGlow: 60
+  style: 'soft', pFuzz: 3, pPuff: 55, pFur: 45, pDepth: 60, pShine: 45, pGlow: 60,
+  anim: 'auto', aSpeed: 100, aAmt: 100
 };
 const LAYERS = [{ id: 'face', name: 'Face' }, { id: 'glasses', name: 'Glasses' }, { id: 'extra', name: 'Hat / extra' }];
 const freshOff = () => ({ x: 0, y: 0, s: 1, r: 0 });
@@ -422,6 +486,81 @@ function sanitize() {
   if (!ok(EXTRAS, state.extra)) state.extra = 'none';
   if (!ok(GLASSES, state.glasses)) state.glasses = 'none';
   if (!['soft', 'flat'].includes(state.style)) state.style = DEFAULT.style;
+  if (state.anim !== 'auto' && !MOTIONS.some(m => m.id === state.anim)) state.anim = 'auto';
+  state.aSpeed = Math.min(200, Math.max(50, +state.aSpeed || 100));
+  state.aAmt = Math.min(150, Math.max(0, +state.aAmt >= 0 ? +state.aAmt : 100));
+}
+
+/* ---------- motion presets ----------
+   Keyframes at normalized time t (0..1). Each keyframe is complete: anything left out is the rest pose.
+   body: x, y (drawing units, -y = up), sx, sy (scale), r (degrees) around the bottom centre of the body.
+   face: x, y, r around the face centre (face + glasses ride along with the body).
+   shadow: s (scale), o (opacity multiplier). Segments ease with cubic-bezier(.42,0,.58,1). */
+const MOTIONS = [
+  { id: 'breathe', name: 'Breathe', dur: 3.6, body: [{ t: 0 }, { t: .5, sx: .985, sy: 1.03 }], shadow: [{ t: 0 }, { t: .5, s: 1.02 }] },
+  { id: 'bounce', name: 'Bounce', dur: 1.1, body: [{ t: 0, sx: 1.05, sy: .94 }, { t: .15 }, { t: .45, y: -10, sx: .97, sy: 1.04 }, { t: .75 }, { t: .85, sx: 1.05, sy: .94 }], shadow: [{ t: 0 }, { t: .45, s: .78, o: .7 }, { t: .75 }] },
+  { id: 'jump', name: 'Jump', dur: .95, body: [{ t: 0, sx: 1.08, sy: .9 }, { t: .12, y: -2, sx: .95, sy: 1.06 }, { t: .42, y: -15, r: -4 }, { t: .72, y: -1 }, { t: .84, sx: 1.08, sy: .9 }], shadow: [{ t: 0 }, { t: .42, s: .65, o: .55 }, { t: .78 }] },
+  { id: 'float', name: 'Float', dur: 4.2, body: [{ t: 0 }, { t: .25, y: -5, r: -2 }, { t: .5, y: -8 }, { t: .75, y: -5, r: 2 }], shadow: [{ t: 0 }, { t: .5, s: .85, o: .75 }] },
+  { id: 'tilt', name: 'Tilt', dur: 2.4, body: [{ t: 0 }, { t: .25, r: -7 }, { t: .55, r: -7 }, { t: .8 }], face: [{ t: 0 }, { t: .25, x: -2 }, { t: .55, x: -2 }, { t: .8 }] },
+  { id: 'wiggle', name: 'Wiggle', dur: 1.4, body: [{ t: 0 }, { t: .25, r: -6 }, { t: .5 }, { t: .75, r: 6 }] },
+  { id: 'wobble', name: 'Wobble', dur: 1.2, body: [{ t: 0 }, { t: .2, r: -8, sx: 1.04, sy: .97 }, { t: .4, r: 7, sx: .97, sy: 1.03 }, { t: .6, r: -5 }, { t: .8, r: 3 }] },
+  { id: 'heartbeat', name: 'Heartbeat', dur: 1.2, body: [{ t: 0 }, { t: .1, sx: 1.07, sy: 1.07 }, { t: .22 }, { t: .32, sx: 1.05, sy: 1.05 }, { t: .46 }], shadow: [{ t: 0 }, { t: .1, s: 1.06 }, { t: .22 }] },
+  { id: 'sway', name: 'Sway', dur: 3.2, body: [{ t: 0, r: -3 }, { t: .5, r: 3 }], face: [{ t: 0, x: -1.5, y: 1.5 }, { t: .5, x: 1.5, y: 1.5 }] },
+  { id: 'nod', name: 'Nod', dur: 2.6, body: [{ t: 0 }, { t: .2, y: 1.5, r: 2 }, { t: .35 }, { t: .55, r: 4 }, { t: .85, r: 4 }], face: [{ t: 0 }, { t: .2, y: 2 }, { t: .35 }] },
+  { id: 'doze', name: 'Doze off', dur: 4.8, body: [{ t: 0 }, { t: .6, r: 7, y: 2, sx: 1.02, sy: .97 }, { t: .68, r: -1 }, { t: .78 }], face: [{ t: 0 }, { t: .6, y: 3 }, { t: .68 }] },
+  { id: 'pop', name: 'Pop', dur: 1.8, body: [{ t: 0 }, { t: .08, sx: 1.08, sy: .9 }, { t: .2, y: -11, sx: .94, sy: 1.08 }, { t: .36, sx: 1.03, sy: .97 }, { t: .46 }], face: [{ t: 0 }, { t: .2, y: -2 }, { t: .46 }], shadow: [{ t: 0 }, { t: .2, s: .75, o: .6 }, { t: .36 }] },
+  { id: 'jitter', name: 'Jitter', dur: .6, body: [{ t: 0 }, { t: .125, x: -1.6 }, { t: .25, x: 1.4 }, { t: .375, x: -1.2 }, { t: .5, x: 1.5 }, { t: .625, x: -1.3 }, { t: .75, x: 1.2 }, { t: .875, x: -.8 }] },
+  { id: 'droop', name: 'Droop', dur: 3.8, body: [{ t: 0 }, { t: .5, y: 2, sx: 1.025, sy: .965, r: -2 }], face: [{ t: 0 }, { t: .5, y: 3 }] },
+  { id: 'shake', name: 'Shake', dur: 1.8, body: [{ t: 0 }, { t: .05, x: -3, r: -2 }, { t: .1, x: 3, r: 2 }, { t: .15, x: -3, r: -2 }, { t: .2, x: 3, r: 2 }, { t: .25, x: -2 }, { t: .3 }, { t: .6, sx: 1.03, sy: .96 }, { t: .8 }] },
+  { id: 'none', name: 'Still', dur: 2 }
+];
+const MOOD_MOTION = {
+  plain: 'breathe', happy: 'bounce', excited: 'jump', calm: 'breathe', wink: 'tilt', cheeky: 'wiggle', silly: 'wobble', love: 'heartbeat',
+  shy: 'sway', smug: 'nod', dreamy: 'float', sleepy: 'doze', surprised: 'pop', worried: 'jitter', sad: 'droop', grumpy: 'shake'
+};
+const REST = { body: { x: 0, y: 0, sx: 1, sy: 1, r: 0 }, face: { x: 0, y: 0, r: 0 }, shadow: { s: 1, o: 1 } };
+const EASE = [.42, 0, .58, 1];
+const motionNow = () => MOTIONS.find(m => m.id === (state.anim === 'auto' ? MOOD_MOTION[state.mood] : state.anim)) || MOTIONS[0];
+const motionDur = () => f(motionNow().dur * 100 / state.aSpeed);
+/* full keyframes for one track, intensity applied, looping back to the first pose at t = 1 */
+function track(m, key) {
+  const a = state.aAmt / 100, rest = REST[key];
+  let kf = (m[key] || [{ t: 0 }]).map(k => {
+    const o = { t: k.t };
+    for (const p in rest) o[p] = +(rest[p] + ((k[p] ?? rest[p]) - rest[p]) * a).toFixed(4);
+    return o;
+  }).sort((x, y) => x.t - y.t);
+  if (kf[0].t > 0) kf.unshift({ ...kf[0], t: 0 });
+  if (kf[kf.length - 1].t < 1) kf.push({ ...kf[0], t: 1 });
+  return kf;
+}
+const isStill = kf => kf.every(k => Object.keys(k).every(p => p === 't' || k[p] === kf[0][p]));
+/* pivots in drawing units */
+function pivots() {
+  const o = state.off.face;
+  return { body: [f(GEO.cx), f(GEO.bottom)], face: [f(GEO.cx + o.x), f(GEO.fy + 6 + o.y)], shadow: [f(GEO.cx), f(GEO.bottom + 20)] };
+}
+/* CSS keyframes for the wrapper groups (#<prefix>-body / -face / -shadow). Shared by the preview and the animated SVG. */
+function motionCSS(prefix) {
+  const m = motionNow(), dur = motionDur(), pv = pivots(), ease = `cubic-bezier(${EASE.join(',')})`;
+  const tfm = {
+    body: ([px, py], k) => `translate(${f(px + k.x)}px,${f(py + k.y)}px) rotate(${k.r}deg) scale(${k.sx},${k.sy}) translate(${-px}px,${-py}px)`,
+    face: ([px, py], k) => `translate(${f(px + k.x)}px,${f(py + k.y)}px) rotate(${k.r}deg) translate(${-px}px,${-py}px)`,
+    shadow: ([px, py], k) => `translate(${px}px,${py}px) scale(${k.s}) translate(${-px}px,${-py}px)`
+  };
+  let css = '';
+  ['body', 'face', 'shadow'].forEach(key => {
+    const kf = track(m, key);
+    if (m.id === 'none' || isStill(kf)) return;
+    const name = `${prefix}-${key}-${m.id}`;
+    css += `@keyframes ${name}{` + kf.map(k => `${f(k.t * 100)}%{transform:${tfm[key](pv[key], k)};${key === 'shadow' ? `opacity:${k.o};` : ''}animation-timing-function:${ease}}`).join('') + '}';
+    css += `#${prefix}-${key}{transform-box:view-box;transform-origin:0 0;animation:${name} ${dur}s infinite}`;
+  });
+  return css;
+}
+/* the character with animation wrappers: shadow | body > (Body, face > (Face, Glasses), Extra) */
+function animatedMarkup(p, prefix) {
+  return `<g id="${prefix}-shadow">${p.shadow}</g><g id="${prefix}-body">${p.body}<g id="${prefix}-face">${p.face}${p.glasses}</g>${p.extra}</g>`;
 }
 try {
   const saved = JSON.parse(localStorage.getItem('fuzzy-buddy') || 'null');
@@ -720,7 +859,7 @@ function parts(o) {
   const hatMk = hat(o.extra, o.extraColor, b.w / 2 - 2, fy - top - 8);
   const hatNoise = noiseURL && o.nExtras && hatMk;
   const lightBody = o.color === 'ice' || o.color === 'sea';
-  const g = GEO = { cx, fy, top };
+  const g = GEO = { cx, fy, top, bottom };
   const defs = `
 <radialGradient id="ground" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="${P.onyx}" stop-opacity="${plush ? .26 : .2}"/><stop offset=".6" stop-color="${P.onyx}" stop-opacity=".09"/><stop offset="1" stop-color="${P.onyx}" stop-opacity="0"/></radialGradient>
 <radialGradient id="shade" gradientUnits="userSpaceOnUse" cx="${f(cx - b.w * .18)}" cy="${f(b.y + b.h * .3)}" r="${f(r)}">
@@ -789,11 +928,24 @@ function fitFrame() {
 function renderMain() {
   const svg = document.getElementById('main');
   svg.setAttribute('viewBox', '-25 -40 250 250');
-  svg.innerHTML = character(state);
+  const p = parts(state);
+  motionStyle.textContent = '';            // measure the frame at rest
+  svg.innerHTML = `<defs>${p.defs}</defs>${animatedMarkup(p, 'pv')}`;
   fitFrame();
   markSelected();
+  updateMotion();
   if (typeof scheduleCommit === 'function') scheduleCommit();
-  document.getElementById('chip').textContent = `Feeling ${MOODS.find(m => m.id === state.mood).name.toLowerCase()}`;
+}
+const motionStyle = document.head.appendChild(document.createElement('style'));
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let playing = !reduceMotion;
+function updateMotion() {
+  motionStyle.textContent = motionCSS('pv');
+  const m = motionNow();
+  document.getElementById('chip').textContent = `Feeling ${MOODS.find(x => x.id === state.mood).name.toLowerCase()}` + (m.id !== 'none' ? ` · ${m.name.toLowerCase()}` : '');
+  document.getElementById('stage').classList.toggle('paused', !playing);
+  if (typeof renderMotionControls === 'function') renderMotionControls();
+  if (typeof renderCode === 'function') renderCode();
 }
 function markSelected() {
   const svg = document.getElementById('main');
@@ -1076,8 +1228,8 @@ function svgToCanvas(svg, size) {
   });
 }
 /* One layer rendered on its own, framed like the whole drawing, as a PNG data URL. */
-async function rasterLayer(markup, defs, size) {
-  const svg = `<svg ${XMLNS} width="${size}" height="${size}" viewBox="${FIT.x} ${FIT.y} ${FIT.s} ${FIT.s}"><defs>${defs}</defs>${markup}</svg>`;
+async function rasterLayer(markup, defs, size, fr = FIT) {
+  const svg = `<svg ${XMLNS} width="${size}" height="${size}" viewBox="${fr.x} ${fr.y} ${fr.s} ${fr.s}"><defs>${defs}</defs>${markup}</svg>`;
   return (await svgToCanvas(svg, size)).toDataURL('image/png');
 }
 /* Figma-ready SVG. Flat: all vector. Plush: fur body and hat become image layers (filters can't import), the rest stays vector. */
@@ -1161,6 +1313,173 @@ document.getElementById('copy-png').addEventListener('click', e => busy(e.curren
   catch (err) { toast('Copying images is blocked here. Use the PNG download.'); }
 }));
 
+/* ---------- developer exports: Lottie, animated SVG, avatar JSON ---------- */
+/* a little more room than the still frame, so jumps and tilts never clip */
+const animFrame = () => { const s = f(FIT.s * 1.14); return { x: f(FIT.x - (s - FIT.s) / 2), y: f(FIT.y - (s - FIT.s) * .62), s }; };
+const fpsNow = () => +document.getElementById('fps').value;
+
+async function buildLottie() {
+  const size = sizeNow(), fps = fpsNow(), m = motionNow(), fr = animFrame(), k = size / fr.s;
+  const p = parts(state), pv = pivots();
+  const op = Math.max(1, Math.round(motionDur() * fps));
+  const X = u => +((u - fr.x) * k).toFixed(2), Y = u => +((u - fr.y) * k).toFixed(2);
+  const [shadowPNG, bodyPNG, facePNG, extraPNG] = await Promise.all([
+    rasterLayer(p.shadow, p.defs, size, fr), rasterLayer(p.body, p.defs, size, fr),
+    rasterLayer(p.face + p.glasses, p.defs, size, fr), p.extra ? rasterLayer(p.extra, p.defs, size, fr) : null
+  ]);
+  /* one animatable property: static when nothing changes, else eased keyframes */
+  const prop = (kf, val) => {
+    const vals = kf.map(val);
+    if (m.id === 'none' || vals.every(v => JSON.stringify(v) === JSON.stringify(vals[0]))) return { a: 0, k: vals[0] };
+    const keys = []; let lastT = -1;
+    kf.forEach((x, i) => {
+      const t = Math.round(x.t * op);
+      if (t === lastT) return; lastT = t;
+      const n = vals[i].length;
+      keys.push({ t, s: vals[i], o: { x: Array(n).fill(EASE[0]), y: Array(n).fill(EASE[1]) }, i: { x: Array(n).fill(EASE[2]), y: Array(n).fill(EASE[3]) } });
+    });
+    const last = keys[keys.length - 1]; delete last.o; delete last.i;
+    return { a: 1, k: keys };
+  };
+  const still = (v) => ({ a: 0, k: v });
+  const body = track(m, 'body'), faceT = track(m, 'face'), shadow = track(m, 'shadow');
+  const [bx, by] = [X(pv.body[0]), Y(pv.body[1])], [fx, fy] = [X(pv.face[0]), Y(pv.face[1])], [sx, sy] = [X(pv.shadow[0]), Y(pv.shadow[1])];
+  const layer = (ind, nm, refId, ks, parent) => ({
+    ddd: 0, ind, ty: 2, nm, refId, sr: 1, ks: { o: still([100]), r: still([0]), p: still([0, 0, 0]), a: still([0, 0, 0]), s: still([100, 100, 100]), ...ks },
+    ao: 0, ip: 0, op, st: 0, bm: 0, ...(parent ? { parent } : {})
+  });
+  const assets = [['shadow', shadowPNG], ['body', bodyPNG], ['face', facePNG], ['extra', extraPNG]].filter(a => a[1])
+    .map(([id, src]) => ({ id: 'img_' + id, w: size, h: size, u: '', p: src, e: 1 }));
+  const layers = [
+    extraPNG && layer(4, 'Extra', 'img_extra', {}, 2),
+    layer(3, 'Face', 'img_face', {
+      a: still([fx, fy, 0]),
+      p: prop(faceT, q => [+(fx + q.x * k).toFixed(2), +(fy + q.y * k).toFixed(2), 0]),
+      r: prop(faceT, q => [q.r])
+    }, 2),
+    layer(2, 'Body', 'img_body', {
+      a: still([bx, by, 0]),
+      p: prop(body, q => [+(bx + q.x * k).toFixed(2), +(by + q.y * k).toFixed(2), 0]),
+      r: prop(body, q => [q.r]),
+      s: prop(body, q => [+(q.sx * 100).toFixed(2), +(q.sy * 100).toFixed(2), 100])
+    }),
+    layer(1, 'Shadow', 'img_shadow', {
+      a: still([sx, sy, 0]), p: still([sx, sy, 0]),
+      s: prop(shadow, q => [+(q.s * 100).toFixed(2), +(q.s * 100).toFixed(2), 100]),
+      o: prop(shadow, q => [+(q.o * 100).toFixed(2)])
+    })
+  ].filter(Boolean);
+  return {
+    v: '5.7.4', fr: fps, ip: 0, op, w: size, h: size, nm: `Supers · ${MOODS.find(x => x.id === state.mood).name} · ${m.name}`, ddd: 0,
+    assets, layers, markers: [], meta: { g: 'Supers', a: '', k: `mood:${state.mood}, motion:${m.id}`, d: '', tc: '' }
+  };
+}
+function animatedSVG() {
+  const size = sizeNow(), fr = animFrame(), p = parts(state);
+  return `<svg ${XMLNS} width="${size}" height="${size}" viewBox="${fr.x} ${fr.y} ${fr.s} ${fr.s}"><style>${motionCSS('sp')}@media (prefers-reduced-motion: reduce){[id^="sp-"]{animation:none!important}}</style><defs>${p.defs}</defs>${animatedMarkup(p, 'sp')}</svg>`;
+}
+function avatarJSON() {
+  const m = motionNow(), { off, ...look } = state;
+  ['anim', 'aSpeed', 'aAmt'].forEach(key => delete look[key]);
+  return {
+    $schema: 'supers.avatar/1',
+    avatar: { ...look, offsets: off },
+    palette: { ...P },
+    motion: {
+      id: m.id, name: m.name, source: state.anim === 'auto' ? `auto (mood: ${state.mood})` : 'manual',
+      duration: motionDur(), speed: state.aSpeed / 100, intensity: state.aAmt / 100, loop: true,
+      easing: `cubic-bezier(${EASE.join(', ')})`,
+      units: 'drawing units (see frame); rotation in degrees; scale and opacity as factors',
+      pivots: pivots(),
+      tracks: { body: track(m, 'body'), face: track(m, 'face'), shadow: track(m, 'shadow') }
+    },
+    moodMotions: MOOD_MOTION,
+    frame: animFrame()
+  };
+}
+const jsonBlob = o => new Blob([JSON.stringify(o)], { type: 'application/json' });
+document.getElementById('dl-lottie').addEventListener('click', e => busy(e.currentTarget, async () => {
+  try { await offerFile(`${fileBase()}-${motionNow().id}.json`, jsonBlob(await buildLottie())); }
+  catch (err) { toast('Could not build the Lottie file in this browser.'); }
+}));
+document.getElementById('copy-lottie').addEventListener('click', e => busy(e.currentTarget, async () => {
+  if (!navigator.clipboard) { toast('Copying is blocked here. Use the Lottie download.'); return; }
+  try { await navigator.clipboard.writeText(JSON.stringify(await buildLottie())); toast('Lottie JSON copied.'); }
+  catch (err) { toast('Copying is blocked here. Use the Lottie download.'); }
+}));
+document.getElementById('dl-asvg').addEventListener('click', e => busy(e.currentTarget, async () => {
+  try { await offerFile(`${fileBase()}-${motionNow().id}-animated.svg`, new Blob([animatedSVG()], { type: 'image/svg+xml' })); }
+  catch (err) { toast('Could not build the animated SVG.'); }
+}));
+document.getElementById('dl-json').addEventListener('click', e => busy(e.currentTarget, async () => {
+  await offerFile(`${fileBase()}-avatar.json`, new Blob([JSON.stringify(avatarJSON(), null, 2)], { type: 'application/json' }));
+}));
+
+/* export mode: Design (static, Figma) or Developers (motion) */
+let mode = 'design';
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function snippet() {
+  const file = `${fileBase()}-${motionNow().id}.json`;
+  return `<span class="k">import</span> lottie <span class="k">from</span> <span class="s">'lottie-web'</span>;
+
+lottie.loadAnimation({
+  container: document.getElementById(<span class="s">'buddy'</span>),
+  renderer: <span class="s">'svg'</span>, loop: <span class="k">true</span>, autoplay: <span class="k">true</span>,
+  path: <span class="s">'/${esc(file)}'</span>
+});
+
+<span class="k">// React Native</span>: &lt;LottieView source={require(<span class="s">'./${esc(file)}'</span>)} autoPlay loop /&gt;
+<span class="k">// Animated SVG</span>: &lt;img src=<span class="s">"${esc(fileBase())}-${motionNow().id}-animated.svg"</span>&gt;`;
+}
+function renderCode() {
+  if (mode !== 'dev') return;
+  document.getElementById('code').innerHTML = snippet();
+}
+function renderMode() {
+  const dev = mode === 'dev';
+  document.querySelectorAll('#mode-seg [data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  document.getElementById('design-box').hidden = dev;
+  document.getElementById('dev-box').hidden = !dev;
+  document.getElementById('fps-wrap').hidden = !dev;
+  document.getElementById('code-wrap').hidden = !dev;
+  document.getElementById('mode-tag').textContent = dev ? 'Animated files for apps and the web' : 'Static files for Figma';
+  document.getElementById('export-hint').textContent = dev
+    ? 'Lottie JSON plays in lottie-web, iOS, Android and React Native: body, face, extra and shadow are separate layers with the motion as keyframes. Animated SVG plays anywhere an image does. Avatar JSON holds the full look plus every keyframe, for building your own renderer. Pick 512 px to keep files small.'
+    : HINTS[state.style];
+  renderCode();
+}
+document.getElementById('mode-seg').addEventListener('click', e => {
+  const b = e.target.closest('[data-mode]'); if (!b) return;
+  mode = b.dataset.mode; renderMode();
+});
+document.getElementById('copy-code').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(document.getElementById('code').textContent); toast('Snippet copied.'); }
+  catch (e) { toast('Copying is blocked here.'); }
+});
+
+/* motion controls */
+const PLAY_ICO = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>';
+const PAUSE_ICO = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>';
+function renderMotionControls() {
+  const sel = document.getElementById('a-pick'), auto = MOTIONS.find(m => m.id === MOOD_MOTION[state.mood]);
+  sel.innerHTML = `<option value="auto">Auto · ${auto.name} (${MOODS.find(x => x.id === state.mood).name})</option>` +
+    MOTIONS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+  sel.value = state.anim;
+  document.getElementById('a-speed').value = state.aSpeed;
+  document.getElementById('o-speed').textContent = f(state.aSpeed / 100) + '×';
+  document.getElementById('a-amt').value = state.aAmt;
+  document.getElementById('o-amt').textContent = state.aAmt + '%';
+  const btn = document.getElementById('a-play');
+  btn.innerHTML = playing ? `${PAUSE_ICO}Pause` : `${PLAY_ICO}Play`;
+  btn.setAttribute('aria-pressed', String(playing));
+}
+document.getElementById('a-pick').addEventListener('change', e => { state.anim = e.target.value; playing = true; updateMotion(); scheduleCommit(); });
+document.getElementById('a-play').addEventListener('click', () => { playing = !playing; updateMotion(); });
+[['a-speed', 'aSpeed'], ['a-amt', 'aAmt']].forEach(([id, key]) => {
+  document.getElementById(id).addEventListener('input', e => { state[key] = +e.target.value; updateMotion(); });
+  document.getElementById(id).addEventListener('change', () => scheduleCommit());
+});
+
 /* ---------- style controls ---------- */
 const STYLE_CTLS = [['depth', 'pDepth', v => v + '%'], ['shine', 'pShine', v => v + '%']];
 const HINTS = {
@@ -1170,7 +1489,7 @@ const HINTS = {
 function renderStyle() {
   document.querySelectorAll('#style-seg [data-style]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.style === state.style)));
   document.getElementById('soft-box').hidden = state.style !== 'soft';
-  document.getElementById('export-hint').textContent = HINTS[state.style];
+  renderMode();
   STYLE_CTLS.forEach(([id, key, fmt]) => { document.getElementById('p-' + id).value = state[key]; document.getElementById('o-' + id).textContent = fmt(state[key]); });
 }
 document.getElementById('style-seg').addEventListener('click', e => {
